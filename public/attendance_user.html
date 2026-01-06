@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance User - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <!-- Note: Navbar is injected by layout.js at the top of #content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Attendance User</h2>
+            </div>
+
+
+            <!-- Date Range Filter -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-body">
+                    <form id="filter-form" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="startDate" class="form-label fw-bold small">Start Date</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="endDate" class="form-label fw-bold small">End Date</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-6 d-flex gap-2">
+                            <button type="button" id="btn-filter" class="btn btn-primary flex-fill">
+                                <i class="fas fa-filter me-2"></i>Filter
+                            </button>
+                            <button type="button" id="btn-reset" class="btn btn-outline-secondary flex-fill">
+                                <i class="fas fa-undo me-2"></i>Reset
+                            </button>
+                            <button type="button" id="btn-export" class="btn btn-success flex-fill">
+                                <i class="fas fa-file-excel me-2"></i>Export
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="attendance-table" class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>User</th>
+                                    <th>No Karyawan</th>
+                                    <th>Job</th>
+                                    <th>Site</th>
+                                    <th>Lokasi</th> <!-- Changed for demo API -->
+                                    <th>Foto</th> <!-- Changed for demo API -->
+                                    <th>Waktu</th> <!-- Changed for demo API -->
+                                    <th>Maps</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded via API -->
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout with active page
+            renderLayout('attendance_user');
+
+            // Initialize DataTable with API Configuration
+            const table = initDataTable('#attendance-table', {
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>B",
+                buttons: [
+                    {
+                        extend: 'excel',
+                        text: '<i class="fas fa-file-excel me-2"></i>Export to Excel',
+                        className: 'btn btn-success d-none', // Hidden, we'll trigger it manually
+                        title: 'Attendance Report',
+                        filename: function () {
+                            const startDate = document.getElementById('startDate').value;
+                            const endDate = document.getElementById('endDate').value;
+                            let filename = 'Attendance_Report';
+                            if (startDate && endDate) {
+                                filename += `_${startDate}_to_${endDate}`;
+                            } else if (startDate) {
+                                filename += `_from_${startDate}`;
+                            } else if (endDate) {
+                                filename += `_until_${endDate}`;
+                            }
+                            return filename;
+                        },
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 6], // Export row#, user, nik, area, location, timestamp (exclude photo, maps, actions)
+                            modifier: {
+                                search: 'applied',
+                                order: 'applied'
+                            }
+                        }
+                    }
+                ],
+                ajax: {
+                    url: API_CONFIG.endpoints.recentAttendance,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: function (d) {
+                        return JSON.stringify({
+                            refreshToken: localStorage.getItem('refreshToken'),
+                            startDate: document.getElementById('startDate').value,
+                            endDate: document.getElementById('endDate').value
+                        });
+                    },
+                    dataSrc: ''
+                },
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        render: function (data, type, row, meta) {
+                            return meta.row + 1;
+                        }
+                    },
+                    {
+                        data: 'email',
+                        render: function (data, type, row) {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-3">${data.substring(0, 2).toUpperCase()}</div>
+                                    <div>
+                                        <p class="mb-0 fw-bold">${data}</p>
+                                        <small class="text-muted">${row.user ? row.user.email : data}</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    },
+                    { data: 'user.nik' },
+                    { data: 'job_type' },
+                    { data: 'user.status' },
+                    { data: 'caption' },
+                    {
+                        data: 'photo',
+                        render: function (data, type, row) {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <img src="${API_CONFIG.getPhotoUrl(data)}" alt="User Photo" class="avatar me-3" width="50" height="50">
+                                </div>
+                            `;
+                        }
+                    },
+                    {
+                        data: 'timestamp',
+                        render: function (data, type, row) {
+                            if (!data) return '';
+                            // Input: 2025-12-12 11-16-20
+                            // Desired: 2025-12-12 11:16 AM
+
+                            const parts = data.split(' ');
+                            if (parts.length < 2) return data;
+
+                            const datePart = parts[0];
+                            const timePart = parts[1].replace(/-/g, ':'); // 11:16:20
+
+                            const [hoursStr, minutesStr] = timePart.split(':');
+                            let hours = parseInt(hoursStr);
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            hours = hours % 12;
+                            hours = hours ? hours : 12; // the hour '0' should be '12'
+
+                            return `${datePart} ${hours}:${minutesStr} ${ampm}`;
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            if (row.latitude && row.longitude) {
+                                return `
+                                    <a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="btn btn-sm btn-outline-primary" title="View on Map">
+                                        <i class="fas fa-location-dot"></i>
+                                    </a>
+                                `;
+                            }
+                            return '<span class="text-muted small">No Location</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            const userEmail = row.email || (row.user ? row.user.email : '');
+                            if (!userEmail) return '<span class="text-muted small">-</span>';
+                            return `
+                                <a href="/user_detail_attendance?email=${encodeURIComponent(userEmail)}" 
+                                   class="btn btn-sm btn-outline-info" 
+                                   title="View User Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            `;
+                        }
+                    }
+                ]
+            });
+
+            // Date range validation
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            startDateInput.addEventListener('change', function () {
+                if (this.value) {
+                    endDateInput.min = this.value;
+                    if (endDateInput.value && endDateInput.value < this.value) {
+                        endDateInput.value = '';
+                    }
+                } else {
+                    endDateInput.min = '';
+                }
+            });
+
+            endDateInput.addEventListener('change', function () {
+                if (startDateInput.value && this.value < startDateInput.value) {
+                    alert('End date cannot be before start date');
+                    this.value = '';
+                }
+            });
+
+            // Filter functionality
+            document.getElementById('btn-filter').addEventListener('click', function () {
+                $('#attendance-table').DataTable().ajax.reload();
+            });
+
+            // Reset functionality
+            document.getElementById('btn-reset').addEventListener('click', function () {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                endDateInput.min = ''; // Reset min constraint
+                $('#attendance-table').DataTable().ajax.reload();
+            });
+
+            // Export to Excel functionality
+            document.getElementById('btn-export').addEventListener('click', function () {
+                $('#attendance-table').DataTable().button(0).trigger();
+            });
+        });
+    </script>
+</body>
+
+</html>

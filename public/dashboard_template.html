@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #212529;
+            --sidebar-text: #fff;
+            --topbar-height: 60px;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        /* Sidebar Styles */
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        #sidebar .sidebar-header {
+            padding: 20px;
+            background: rgba(0,0,0,0.1);
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+        }
+
+        #sidebar ul.components {
+            padding: 20px 0;
+        }
+
+        #sidebar ul li a {
+            padding: 15px 20px;
+            font-size: 1.1em;
+            display: block;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        #sidebar ul li a:hover, #sidebar ul li a.active {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+
+        #sidebar ul li a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content Styles */
+        #content {
+            width: calc(100% - var(--sidebar-width));
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            height: var(--topbar-height);
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 0 20px;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            #sidebar {
+                margin-left: calc(var(--sidebar-width) * -1);
+            }
+            #sidebar.active {
+                margin-left: 0;
+            }
+            #content {
+                width: 100%;
+                margin-left: 0;
+            }
+            #sidebarCollapse span {
+                display: none;
+            }
+        }
+        
+        /* Overlay for mobile */
+        .overlay {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 998;
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-bolt me-2"></i>Admin</h3>
+        </div>
+
+        <ul class="list-unstyled components">
+            <!-- <li>
+                <a href="/home" class="active">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </li> -->
+            <!-- <li>
+                <a href="users.html">
+                    <i class="fas fa-users"></i> Users
+                </a>
+            </li> -->
+            <li>
+                <a href="/attendance_user">
+                    <i class="fas fa-user"></i> Attendance
+                </a>
+            </li>
+            <!-- <li>
+                <a href="#">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li> -->
+        </ul>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+            <div class="container-fluid">
+                <button type="button" id="sidebarCollapse" class="btn btn-primary">
+                    <i class="fas fa-bars"></i>
+                    <span class="ms-2">Toggle Menu</span>
+                </button>
+
+                <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+                    <ul class="navbar-nav mb-2 mb-lg-0">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i> Admin User
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#">Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Placeholder -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="text-center mt-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay"></div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const sidebarCollapse = document.getElementById('sidebarCollapse');
+            const overlay = document.querySelector('.overlay');
+            const navLinks = document.querySelectorAll('#sidebar ul li a');
+
+            // Toggle Sidebar functionality
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+
+            sidebarCollapse.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+
+            // Dynamic Content Loading
+            async function loadContent(url) {
+                try {
+                    // Show loading state
+                    mainContent.innerHTML = `
+                        <div class="text-center mt-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    `;
+
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const html = await response.text();
+                    mainContent.innerHTML = html;
+                } catch (error) {
+                    console.error('Error loading content:', error);
+                    mainContent.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <h4 class="alert-heading">Error!</h4>
+                            <p>Failed to load content. Please make sure you are running this on a web server (not directly from file system).</p>
+                            <hr>
+                            <p class="mb-0">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Handle Navigation Clicks
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Ignore links with '#' or javascript:void(0)
+                    const href = this.getAttribute('href');
+                    if(href === '#' || href.startsWith('javascript')) return;
+
+                    e.preventDefault();
+
+                    // Update Active State
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
+
+                    // Load content
+                    loadContent(href);
+                });
+            });
+
+            // Load default content (Home)
+            loadContent('home.html');
+        });
+    </script>
+</body>
+</html>

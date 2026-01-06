@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: #fff;
+            padding: 30px 20px 10px;
+            text-align: center;
+        }
+
+        .login-header .icon-box {
+            width: 80px;
+            height: 80px;
+            background: #eff2f7;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            color: #764ba2;
+            font-size: 32px;
+        }
+
+        .login-body {
+            padding: 30px;
+            background: #fff;
+        }
+
+        .form-floating:focus-within {
+            z-index: 2;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-login:hover {
+            opacity: 0.9;
+        }
+
+        .login-footer {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card card">
+        <div class="login-header">
+            <div class="icon-box">
+                <i class="fas fa-user-lock"></i>
+            </div>
+            <h4 class="fw-bold text-dark">Welcome Back</h4>
+            <p class="text-muted small">Sign in to continue as HCGA GMT</p>
+        </div>
+        <div class="login-body">
+            <form id="loginForm">
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" id="emailInput" placeholder="name@example.com" required>
+                    <label for="emailInput">Email address</label>
+                </div>
+                <div class="form-floating mb-4">
+                    <input type="password" class="form-control" id="passwordInput" placeholder="Password" required>
+                    <label for="passwordInput">Password</label>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <!-- <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberMe" checked>
+                        <label class="form-check-label small" for="rememberMe">
+                            Remember me
+                        </label>
+                    </div>
+                    <a href="#" class="small text-decoration-none text-primary">Forgot Password?</a> -->
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-login shadow-sm text-white" id="loginButton">
+                    LOGIN <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+        <div class="login-footer text-muted">
+            <!-- Don't have an account? <a href="#" class="text-decoration-none fw-bold">Sign Up</a> -->
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const loginBtn = document.getElementById('loginButton');
+
+            // Basic Loading State
+            const originalBtnContent = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            loginBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_CONFIG.endpoints.login, {
+                    method: 'POST',
+                    credentials: 'include', // 🔥 REQUIRED
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.user && data.user.role === 'user') {
+                        alert('Access denied. This dashboard is for HR/Admins only.');
+                        return;
+                    }
+                    // Success! 
+                    // Set a flag so the frontend knows we are logged in
+                    localStorage.setItem('session_active', 'true');
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/';
+                } else {
+                    // Error
+                    alert(data.message || 'Login failed. Please check your credentials.');
+                }
+
+            } catch (error) {
+                console.error('Login Error:', error);
+                alert('An error occurred. Please try again later.');
+            } finally {
+                // Reset Button
+                loginBtn.innerHTML = originalBtnContent;
+                loginBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

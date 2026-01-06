@@ -1,0 +1,111 @@
+:root {
+    --sidebar-width: 250px;
+    --sidebar-bg: #212529;
+    --sidebar-text: #fff;
+    --topbar-height: 60px;
+}
+
+body {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* Sidebar Styles */
+#sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--sidebar-text);
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.1);
+    min-height: var(--topbar-height);
+    height: auto;
+    display: flex;
+    align-items: center;
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+}
+
+#sidebar ul li a {
+    padding: 15px 20px;
+    font-size: 1.1em;
+    display: block;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+#sidebar ul li a:hover,
+#sidebar ul li a.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#sidebar ul li a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Content Styles */
+#content {
+    width: calc(100% - var(--sidebar-width));
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+/* Navbar Styles */
+.navbar {
+    height: var(--topbar-height);
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 0 20px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: calc(var(--sidebar-width) * -1);
+    }
+
+    #sidebar.active {
+        margin-left: 0;
+    }
+
+    #content {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    #sidebarCollapse span {
+        display: none;
+    }
+}
+
+/* Overlay for mobile */
+.overlay {
+    display: none;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+.overlay.active {
+    display: block;
+    opacity: 1;
+}
