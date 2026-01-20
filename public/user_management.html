@@ -40,7 +40,8 @@
                                     <th>No</th>
                                     <th>Email</th>
                                     <th>Nama</th>
-                                    <th>Nomor Induk Karyawan</th>
+                                    <th>NIK</th>
+                                    <th>Departemen</th>
                                     <th>Role</th>
                                     <th>Area Kerja</th>
                                     <th>Actions</th>
@@ -80,6 +81,15 @@
                             <input type="text" class="form-label form-control" id="userNik" required>
                         </div>
                         <div class="mb-3">
+                            <label for="userDepartment" class="form-label">Department</label>
+                            <select class="form-select" id="userDepartment" required>
+                                <option value="">Select Department</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="finance">Finance</option>
+                                <option value="secretary">Secretary</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="userPassword" class="form-label">Password</label>
                             <input type="password" class="form-label form-control" id="userPassword"
                                 placeholder="Leave blank to keep current password">
@@ -99,6 +109,7 @@
                                 <option value="admin">admin</option>
                                 <option value="user">user</option>
                                 <option value="hcga">hcga</option>
+                                <option value="supervisor">supervisor</option>
                             </select>
                         </div>
                     </form>
@@ -181,6 +192,7 @@
                     },
                     { data: 'name' },
                     { data: 'nik' },
+                    { data: 'department' },
                     { data: 'role' },
                     {
                         data: 'status',
@@ -223,6 +235,7 @@
             document.getElementById('userName').value = user.name;
             document.getElementById('userEmail').value = user.email;
             document.getElementById('userNik').value = user.nik;
+            document.getElementById('userDepartment').value = user.department || '';
             document.getElementById('userStatus').value = user.status || 'active';
             document.getElementById('userPassword').required = false;
             document.getElementById('passwordHelp').innerText = 'Leave blank to keep current password.';
@@ -243,6 +256,7 @@
                 name: document.getElementById('userName').value,
                 email: document.getElementById('userEmail').value,
                 nik: document.getElementById('userNik').value,
+                department: document.getElementById('userDepartment').value,
                 status: document.getElementById('userStatus').value,
                 role: document.getElementById('userRole').value
             };

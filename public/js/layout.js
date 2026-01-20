@@ -57,6 +57,7 @@ function renderLayout(activePage) {
         user = JSON.parse(userStr) || {};
     } catch (e) { }
     const isAdmin = user.role === 'admin' || user.role === 'super admin';
+    // const isAdmin = user.role !== 'user';
 
     // 1. Inject Sidebar
     const sidebarHTML = `
