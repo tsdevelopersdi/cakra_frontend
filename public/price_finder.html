@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Finder - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Price Finder</h2>
+            </div>
+
+            <!-- Top Panel: Controls -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file-invoice-dollar fa-2x text-primary me-3 text-opacity-50"></i>
+                        <div>
+                            <div class="d-flex align-items-center mb-1">
+                                <h5 class="mb-0 me-2" id="draft-title-display">Configuration Panel</h5>
+                                <span id="active-draft-badge" class="badge bg-primary d-none"
+                                    style="font-size: 0.7rem; letter-spacing: 0.5px;">ACTIVE DRAFT</span>
+                            </div>
+                            <p class="text-muted small mb-0" id="draft-info-display">Select a draft and process to find
+                                prices</p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="btn-load-draft" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#loadDraftModal">
+                            <i class="fas fa-file-import me-1"></i> Load Draft
+                        </button>
+                        <button id="btn-process-n8n" class="btn btn-success" disabled title="Process prices for items">
+                            <i class="fas fa-magic me-1"></i> Process to n8n
+                        </button>
+                        <button id="btn-process-box" class="btn btn-info text-white" disabled
+                            title="Generate panel box recommendations">
+                            <i class="fas fa-box me-1"></i> Generate Box
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Draft Preview Table (Initially Hidden) -->
+                <div class="col-lg-12 mb-4 d-none" id="draft-preview-container">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-primary"><i class="fas fa-list-check me-2"></i>Draft Items Overview
+                            </h5>
+                            <span class="badge bg-light text-dark border" id="preview-item-count">0 Items</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 50px;">#</th>
+                                            <th>Description</th>
+                                            <th>Type</th>
+                                            <th>Brand</th>
+                                            <th>Qty</th>
+                                            <th>Unit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-tbody">
+                                        <!-- Data populated after selection -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Side: Priced Table (Full Width) -->
+                <div class="col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-success"><i class="fas fa-dollar-sign me-2"></i>Priced Results</h5>
+                            <div id="priced-actions" class="d-flex gap-2 d-none">
+                                <button id="btn-add-priced-row" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-plus me-1"></i> Add Row
+                                </button>
+                                <button id="btn-save-pricing" class="btn btn-sm btn-success">
+                                    <i class="fas fa-save me-1"></i> Save Pricing
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="price-result-container">
+                            <!-- Initial Empty State -->
+                            <div id="price-empty" class="text-center py-5 text-muted">
+                                <i class="fas fa-robot fa-3x mb-3 opacity-25"></i>
+                                <p>Load a draft and click "Process to n8n" to find current prices.</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div id="price-loading" class="text-center py-5 d-none">
+                                <div class="spinner-border text-success mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted">Fetching prices from database...</p>
+                            </div>
+
+                            <!-- Result Table -->
+                            <div id="price-content" class="d-none">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Description</th>
+                                                <th style="width: 120px;">Type</th>
+                                                <th style="width: 180px;">Brand/Merk</th>
+                                                <th style="width: 70px;">Qty</th>
+                                                <th style="width: 70px;">Unit</th>
+                                                <th style="width: 140px;">Price (Unit)</th>
+                                                <th style="width: 140px;">Total</th>
+                                                <th>Notes</th>
+                                                <th style="width: 40px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="priced-tbody">
+                                            <!-- Data populated after process -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Box Recommendations Table (New Section) -->
+                <div class="col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm border-start border-4 border-info">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-info"><i class="fas fa-th-large me-2"></i>Box Recommendations</h5>
+                            <div id="box-actions" class="d-flex gap-2 d-none">
+                                <button id="btn-add-box-row" class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-plus me-1"></i> Add Box
+                                </button>
+                                <button id="btn-save-box" class="btn btn-sm btn-info text-white">
+                                    <i class="fas fa-save me-1"></i> Save Configuration
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="box-result-container">
+                            <!-- Initial Empty State -->
+                            <div id="box-empty" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                                <p>Load a draft and click "Generate Box" to see recommended panel box specs.</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div id="box-loading" class="text-center py-5 d-none">
+                                <div class="spinner-border text-info mb-3" role="status">
+                                    <span class="visually-hidden">Calculating...</span>
+                                </div>
+                                <p class="text-muted">AI is calculating optimal box dimensions...</p>
+                            </div>
+
+                            <!-- Result Table -->
+                            <div id="box-content" class="d-none">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Box Name/Model</th>
+                                                <th>Dimensions</th>
+                                                <th style="width: 140px;">Panel Price</th>
+                                                <th style="width: 140px;">Wiring Price</th>
+                                                <th style="width: 140px;">Total Price</th>
+                                                <th style="width: 40px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="box-tbody">
+                                            <!-- Data populated after process -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Draft Modal -->
+    <div class="modal fade" id="loadDraftModal" tabindex="-1" aria-labelledby="loadDraftModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loadDraftModalLabel"><i class="fas fa-file-alt me-2"></i>Select Draft
+                        SLD</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Document Title</th>
+                                    <th>Created At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-draft-tbody">
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                        </div>
+                                        Loading drafts...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const btnProcess = document.getElementById('btn-process-n8n');
+            const btnProcessBox = document.getElementById('btn-process-box');
+
+            // Initialize Layout
+            renderLayout('price_finder');
+
+            // NEW: Initial check for existing draft in localStorage
+            const savedDraft = localStorage.getItem('cakra_current_draft');
+            if (savedDraft) {
+                try {
+                    const draftData = JSON.parse(savedDraft);
+                    document.getElementById('draft-title-display').textContent = draftData.title;
+                    document.getElementById('active-draft-badge').classList.remove('d-none');
+                    document.getElementById('draft-info-display').innerHTML = `Project Name : ${draftData.projectName}`;
+                    if (btnProcess) btnProcess.disabled = false;
+                    if (btnProcessBox) btnProcessBox.disabled = false;
+                    renderDraftPreview(draftData.items);
+                } catch (e) {
+                    console.error('Error parsing saved draft:', e);
+                }
+            }
+
+            const emptyState = document.getElementById('price-empty');
+            const loadingState = document.getElementById('price-loading');
+            const resultContent = document.getElementById('price-content');
+            const pricedTbody = document.getElementById('priced-tbody');
+            const pricedActions = document.getElementById('priced-actions');
+
+            // Box Finder UI Elements
+            const boxEmpty = document.getElementById('box-empty');
+            const boxLoading = document.getElementById('box-loading');
+            const boxContent = document.getElementById('box-content');
+            const boxTbody = document.getElementById('box-tbody');
+            const boxActions = document.getElementById('box-actions');
+            const btnAddBoxRow = document.getElementById('btn-add-box-row');
+            const btnSaveBox = document.getElementById('btn-save-box');
+
+            const btnAddRow = document.getElementById('btn-add-priced-row');
+            const btnSavePricing = document.getElementById('btn-save-pricing');
+
+            // --- Helper Functions ---
+            function authHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                };
+            }
+
+            async function fetchDrafts() {
+                const modalBody = document.getElementById('modal-draft-tbody');
+                try {
+                    const response = await fetch(API_CONFIG.endpoints.listDrafts, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        const drafts = await response.json();
+                        if (Array.isArray(drafts) && drafts.length > 0) {
+                            modalBody.innerHTML = drafts.map((draft, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td><b class="text-dark">${draft.draft_name || draft.title || 'Untitled Draft'}</b></td>
+                                    <td><span class="text-secondary small">${draft.created_at || draft.createdAt || '-'}</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary select-draft-btn" 
+                                            data-id="${draft.id}" 
+                                            data-title="${draft.draft_name || draft.title || 'Untitled Draft'}"
+                                            data-project-name="${draft.project_name || ''}">
+                                            Select
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        } else {
+                            modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-3">No drafts found.</td></tr>';
+                        }
+                    } else {
+                        modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-danger">Failed to load drafts.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching drafts:', error);
+                    modalBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-danger">Error connecting to server.</td></tr>';
+                }
+            }
+
+            // --- Decoupled Sync Function ---
+            async function syncDraftToLocalStorage(draftId, draftTitle, projectName) {
+                console.log(`%c[Sync Detail] Starting background sync for Draft ID: ${draftId}`, 'color: #ffc107; font-weight: bold;');
+                try {
+                    const detailUrl = `${API_CONFIG.endpoints.listDrafts}/${draftId}`;
+                    console.log(`[Sync Detail] Fetching items from: ${detailUrl}`);
+
+                    const response = await fetch(detailUrl, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        const selectedDraft = await response.json();
+                        console.log('[Sync Detail] API Response Received:', selectedDraft);
+
+                        const draftData = {
+                            id: draftId,
+                            title: draftTitle,
+                            projectName: projectName,
+                            items: selectedDraft.data || selectedDraft.items || []
+                        };
+                        localStorage.setItem('cakra_current_draft', JSON.stringify(draftData));
+                        console.log('%c[LocalStorage] Draft items synced & persisted successfully.', 'color: #28a745; font-weight: bold;');
+
+                        // NEW: Update Preview UI after sync
+                        renderDraftPreview(draftData.items);
+                    } else {
+                        console.error(`[Sync Detail] API Error: ${response.status} ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error('[Sync Detail] Network Error:', error);
+                }
+            }
+
+            // --- Draft Selection Logic ---
+            document.getElementById('modal-draft-tbody').addEventListener('click', function (e) {
+                if (e.target.classList.contains('select-draft-btn')) {
+                    const btn = e.target;
+                    const draftId = btn.getAttribute('data-id');
+                    const draftTitle = btn.getAttribute('data-title');
+                    const projectName = btn.getAttribute('data-project-name');
+
+                    console.log(`%c[UI Action] Draft Selected: ${draftTitle} (${projectName})`, 'color: #007bff; font-weight: bold;');
+
+                    document.getElementById('draft-title-display').textContent = draftTitle;
+                    document.getElementById('active-draft-badge').classList.remove('d-none');
+                    document.getElementById('draft-info-display').innerHTML = `Project Name : ${projectName}`;
+
+                    btnProcess.disabled = false;
+                    btnProcessBox.disabled = false;
+
+                    syncDraftToLocalStorage(draftId, draftTitle, projectName);
+
+                    emptyState.classList.remove('d-none');
+                    resultContent.classList.add('d-none');
+                    loadingState.classList.add('d-none');
+                    pricedActions.classList.add('d-none');
+
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('loadDraftModal'));
+                    modal.hide();
+                }
+            });
+
+            // Fetch drafts when modal is opened
+            const draftModal = document.getElementById('loadDraftModal');
+            draftModal.addEventListener('show.bs.modal', fetchDrafts);
+
+            // --- Draft Preview Logic ---
+            function renderDraftPreview(items) {
+                const container = document.getElementById('draft-preview-container');
+                const tbody = document.getElementById('preview-tbody');
+                const countBadge = document.getElementById('preview-item-count');
+
+                if (!items || items.length === 0) {
+                    container.classList.add('d-none');
+                    return;
+                }
+
+                tbody.innerHTML = items.map((item, index) => `
+                    <tr>
+                        <td class="text-muted">${index + 1}</td>
+                        <td class="fw-bold">${item.name || item.DESCRIPTION || item.description || '-'}</td>
+                        <td>${item.type || item.TYPE || '-'}</td>
+                        <td>${item.brand_merk || item.MERK || '-'}</td>
+                        <td class="text-primary fw-bold">${item.qty || item.QTY || '-'}</td>
+                        <td>${item.unit || item.SAT || '-'}</td>
+                    </tr>
+                `).join('');
+
+                countBadge.textContent = `${items.length} Items`;
+                container.classList.remove('d-none');
+            }
+
+            // --- Badge color based on NOTES content ---
+            function getBadgeClass(notes) {
+                if (!notes) return 'bg-secondary';
+                if (notes.includes('❌')) return 'bg-danger';
+                if (notes.includes('⚠️')) return 'bg-warning text-dark';
+                return 'bg-success';
+            }
+
+            // --- Editable Row Helper ---
+            function createPricedRow(item) {
+                // Support both n8n uppercase fields and backend lowercase fields
+                const rawPrice = item.PRICE || item.price || 0;
+                const cleanPrice = typeof rawPrice === 'string'
+                    ? parseFloat(rawPrice.replace(/\./g, '').replace(',', '.')) || 0
+                    : rawPrice;
+
+                // ← THIS is the fix: check both QTY and qty
+                const rawQty = item.QTY || item.qty || 1;
+                const cleanQty = typeof rawQty === 'string'
+                    ? (parseFloat(rawQty) || 1)
+                    : (rawQty || 1);
+
+                const rawJumlah = item.JUMLAH || item.HARGA_RP || null;
+                const cleanJumlah = (rawJumlah && rawJumlah !== '-')
+                    ? parseFloat(rawJumlah.replace(/\./g, '').replace(',', '.')) || (cleanPrice * cleanQty)
+                    : (cleanPrice * cleanQty);
+
+                const notes = item.NOTES || item.notes || '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent fw-bold" value="${item.DESCRIPTION || item.description || item.name || ''}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.TYPE || item.type || '-'}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.MERK || item.merk || '-'}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-end item-qty" value="${cleanQty}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.SAT || item.unit || 'pcs'}"></td>
+                    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end item-price" value="${cleanPrice}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-end item-total" value="Rp ${cleanJumlah.toLocaleString('id-ID')}" readonly></td>
+                    <td><span class="badge ${getBadgeClass(notes)}">${notes}</span></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm text-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+
+                const priceInput = tr.querySelector('.item-price');
+                const qtyInput = tr.querySelector('.item-qty');
+                const totalInput = tr.querySelector('.item-total');
+
+                function recalcTotal() {
+                    const price = parseFloat(priceInput.value) || 0;
+                    const qty = parseFloat(qtyInput.value) || 1;
+                    totalInput.value = `Rp ${(price * qty).toLocaleString('id-ID')}`;
+                }
+
+                priceInput.addEventListener('input', recalcTotal);
+                qtyInput.addEventListener('input', recalcTotal);
+
+                return tr;
+            }
+
+            btnAddRow.addEventListener('click', () => {
+                const newRow = createPricedRow({ name: 'New Item', price: 0, qty: 1 });
+                pricedTbody.appendChild(newRow);
+            });
+
+            btnSavePricing.addEventListener('click', async () => {
+                const draftDataStr = localStorage.getItem('cakra_current_draft');
+                if (!draftDataStr) {
+                    await showAlert('Warning', 'No active draft found. Please load a draft first.', 'warning');
+                    return;
+                }
+
+                const draftData = JSON.parse(draftDataStr);
+                const projectName = draftData.projectName;
+                const draftName = draftData.title;
+
+                if (!projectName || !draftName) {
+                    await showAlert('Error', 'Draft metadata missing (Project or Title). Please reload the draft.', 'error');
+                    return;
+                }
+
+                const items = [];
+                pricedTbody.querySelectorAll('tr').forEach(tr => {
+                    const inputs = tr.querySelectorAll('input');
+                    if (inputs.length >= 6) {
+                        items.push({
+                            description: inputs[0].value,
+                            type: inputs[1].value,
+                            brand_merk: inputs[2].value,
+                            quantity: inputs[3].value,
+                            unit: inputs[4].value,
+                            price: inputs[5].value,
+                            notes: tr.querySelector('td:nth-child(8) .badge')?.textContent || ''
+                        });
+                    }
+                });
+
+                if (items.length === 0) {
+                    await showAlert('Warning', 'No items to save.', 'warning');
+                    return;
+                }
+
+                // Show loading state
+                const originalBtnText = btnSavePricing.innerHTML;
+                btnSavePricing.disabled = true;
+                btnSavePricing.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                try {
+                    console.log('[API] Saving pricing data:', { projectName, draftName, items });
+
+                    const response = await fetch(API_CONFIG.endpoints.update_sld, {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: JSON.stringify({
+                            projectId: projectName, // Keeping key as projectId/documentTitle for compatibility, but using names from draftData
+                            documentTitle: draftName,
+                            items: items
+                        })
+                    });
+
+                    if (response.ok) {
+                        await showAlert('Success', 'Pricing data saved successfully!', 'success');
+                        // Optional: Clear table or redirect
+                    } else if (response.status === 403) {
+                        await showAlert('Session Expired', 'Please login again.', 'warning');
+                        Auth.logout();
+                    } else {
+                        const errData = await response.json().catch(() => ({}));
+                        await showAlert('Error', 'Failed to save data: ' + (errData.message || response.statusText), 'error');
+                    }
+                } catch (error) {
+                    console.error('[API] Error saving pricing:', error);
+                    await showAlert('Error', 'An error occurred while saving: ' + error.message, 'error');
+                } finally {
+                    btnSavePricing.disabled = false;
+                    btnSavePricing.innerHTML = originalBtnText;
+                }
+            });
+
+            // --- Process Logic (Real n8n Integration) ---
+            btnProcess.addEventListener('click', async function () {
+                const draftDataStr = localStorage.getItem('cakra_current_draft');
+                if (!draftDataStr) {
+                    await showAlert('Warning', 'Please load a draft first.', 'warning');
+                    return;
+                }
+
+                const draftData = JSON.parse(draftDataStr);
+                const itemsToProcess = draftData.items || [];
+
+                if (itemsToProcess.length === 0) {
+                    await showAlert('Warning', 'The selected draft has no items to process.', 'warning');
+                    return;
+                }
+
+                // Show loading
+                emptyState.classList.add('d-none');
+                resultContent.classList.add('d-none');
+                pricedActions.classList.add('d-none');
+                loadingState.classList.remove('d-none');
+                btnProcess.disabled = true;
+
+                console.log('%c[n8n API] Starting Process...', 'color: #fd7e14; font-weight: bold;');
+                console.log('[n8n API] Payload:', itemsToProcess);
+
+                try {
+                    const response = await fetch(N8N_URL_PRICE_FINDER, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            draft_id: draftData.id,
+                            project: draftData.projectName,
+                            items: itemsToProcess
+                        })
+                    });
+
+                    // Only ONE .text() read
+                    const responseText = await response.text();
+                    console.log('[n8n API] Status:', response.status);
+                    console.log('[n8n API] Raw Response:', responseText);
+                    console.log('[n8n API] Raw Length:', responseText.length);
+
+                    if (!responseText || responseText.trim() === '') {
+                        throw new Error('n8n returned empty body. Check your Respond to Webhook node.');
+                    }
+
+                    const results = JSON.parse(responseText);
+                    console.log('[n8n API] Results Parsed:', results);
+
+                    // Handle format: [{ items: [...] }]
+                    const resultItems = (Array.isArray(results) && results[0]?.items)
+                        ? results[0].items
+                        : (Array.isArray(results) ? results : (results.data || []));
+
+                    pricedTbody.innerHTML = '';
+
+                    if (resultItems.length > 0) {
+                        resultItems.forEach(item => pricedTbody.appendChild(createPricedRow(item)));
+                        loadingState.classList.add('d-none');
+                        resultContent.classList.remove('d-none');
+                        pricedActions.classList.remove('d-none');
+                    } else {
+                        loadingState.classList.add('d-none');
+                        emptyState.classList.remove('d-none');
+                        await showAlert('No Results', 'n8n returned no items.', 'info');
+                    }
+
+                } catch (error) {
+                    console.error('[n8n API] Error:', error.message);
+                    await showAlert('Error', error.message, 'error');
+                    loadingState.classList.add('d-none');
+                    emptyState.classList.remove('d-none');
+                } finally {
+                    btnProcess.disabled = false;
+                }
+            });
+
+            // --- Box Finder Logic ---
+            btnProcessBox.addEventListener('click', async function () {
+                const draftDataStr = localStorage.getItem('cakra_current_draft');
+                if (!draftDataStr) {
+                    await showAlert('Warning', 'Please load a draft first.', 'warning');
+                    return;
+                }
+
+                const draftData = JSON.parse(draftDataStr);
+                const itemsToProcess = draftData.items || [];
+
+                boxEmpty.classList.add('d-none');
+                boxContent.classList.add('d-none');
+                boxActions.classList.add('d-none');
+                boxLoading.classList.remove('d-none');
+                btnProcessBox.disabled = true;
+
+                console.log('%c[n8n Box API] Starting Process...', 'color: #17a2b8; font-weight: bold;');
+
+                try {
+                    const response = await fetch(N8N_URL_BOX_FINDER, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            draft_id: draftData.id,
+                            project: draftData.projectName,
+                            items: itemsToProcess
+                        })
+                    });
+
+                    const responseText = await response.text();
+                    console.log('[n8n Box API] Status:', response.status);
+                    console.log('[n8n Box API] Raw Response:', responseText);
+
+                    if (!responseText || responseText.trim() === '') {
+                        throw new Error('n8n returned empty body.');
+                    }
+
+                    const results = JSON.parse(responseText);
+
+                    // Handle various response formats (unwrapping if nested)
+                    let resultBoxes = [];
+                    if (results.recommended_panel) {
+                        resultBoxes = [results.recommended_panel];
+                    } else if (Array.isArray(results) && results[0]?.boxes) {
+                        resultBoxes = results[0].boxes;
+                    } else if (Array.isArray(results)) {
+                        resultBoxes = results;
+                    } else {
+                        resultBoxes = results.boxes || results.data || [];
+                    }
+
+                    boxTbody.innerHTML = '';
+
+                    if (resultBoxes.length > 0) {
+                        resultBoxes.forEach(box => boxTbody.appendChild(createBoxRow(box)));
+                        boxLoading.classList.add('d-none');
+                        boxContent.classList.remove('d-none');
+                        boxActions.classList.remove('d-none');
+                        await showToast('Box recommendations generated!', 'success');
+                    } else {
+                        boxLoading.classList.add('d-none');
+                        boxEmpty.classList.remove('d-none');
+                        await showAlert('No Results', 'n8n returned no box recommendations.', 'info');
+                    }
+
+                } catch (error) {
+                    console.error('[n8n Box API] Error:', error.message);
+                    await showAlert('Error', 'Failed to generate boxes: ' + error.message, 'error');
+                    boxLoading.classList.add('d-none');
+                    boxEmpty.classList.remove('d-none');
+                } finally {
+                    btnProcessBox.disabled = false;
+                }
+            });
+
+            function createBoxRow(box = {}) {
+                const name = box.nama_panel || box.name || box.NAME || box.model || '';
+                const dim = box.ukuran_panel || box.dim || box.DIM || box.dimensions || '';
+                const hPanel = box.harga_panel || 0;
+                const hWiring = box.harga_wiring || 0;
+                const hTotal = box.total_harga || (hPanel + hWiring);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent fw-bold" value="${name}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${dim}"></td>
+                    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end box-panel-price" value="${hPanel}"></td>
+                    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end box-wiring-price" value="${hWiring}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-end fw-bold text-primary box-total-price" value="Rp ${(hTotal).toLocaleString('id-ID')}" readonly></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm text-danger btn-delete-box-row"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+
+                const panelPriceInput = tr.querySelector('.box-panel-price');
+                const wiringPriceInput = tr.querySelector('.box-wiring-price');
+                const totalInput = tr.querySelector('.box-total-price');
+
+                function recalcBoxTotal() {
+                    const hP = parseFloat(panelPriceInput.value) || 0;
+                    const hW = parseFloat(wiringPriceInput.value) || 0;
+                    totalInput.value = `Rp ${(hP + hW).toLocaleString('id-ID')}`;
+                }
+
+                panelPriceInput.addEventListener('input', recalcBoxTotal);
+                wiringPriceInput.addEventListener('input', recalcBoxTotal);
+
+                tr.querySelector('.btn-delete-box-row').addEventListener('click', function () {
+                    tr.remove();
+                });
+
+                return tr;
+            }
+
+            btnAddBoxRow.addEventListener('click', () => {
+                boxTbody.appendChild(createBoxRow({ name: 'New Box', price: 0 }));
+            });
+
+            btnSaveBox.addEventListener('click', async () => {
+                const draftDataStr = localStorage.getItem('cakra_current_draft');
+                if (!draftDataStr) {
+                    await showAlert('Warning', 'Please load a draft first.', 'warning');
+                    return;
+                }
+
+                const draftData = JSON.parse(draftDataStr);
+                const rows = boxTbody.querySelectorAll('tr');
+                if (rows.length === 0) {
+                    await showAlert('Warning', 'No box configurations to save.', 'warning');
+                    return;
+                }
+
+                btnSaveBox.disabled = true;
+                const originalText = btnSaveBox.innerHTML;
+                btnSaveBox.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                // Collect data from rows
+                const boxConfigs = Array.from(rows).map(row => {
+                    const inputs = row.querySelectorAll('input');
+                    // Helper to clean price strings back to numbers
+                    const cleanPrice = (val) => {
+                        if (!val) return 0;
+                        return parseFloat(val.toString().replace(/[^0-9]/g, '')) || 0;
+                    };
+
+                    return {
+                        nama_panel: inputs[0].value,
+                        ukuran_panel: inputs[1].value,
+                        harga_panel: cleanPrice(inputs[2].value),
+                        harga_wiring: cleanPrice(inputs[3].value),
+                        total_harga: cleanPrice(inputs[4].value)
+                    };
+                });
+
+                try {
+                    const response = await fetch(API_CONFIG.endpoints.saveBox, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                        },
+                        body: JSON.stringify({
+                            draft_id: draftData.id,
+                            project_name: draftData.projectName,
+                            boxes: boxConfigs
+                        })
+                    });
+
+                    if (response.ok) {
+                        await showAlert('Success', 'Box configuration saved successfully!', 'success');
+                    } else {
+                        const errData = await response.json();
+                        throw new Error(errData.message || 'Failed to save box configuration.');
+                    }
+                } catch (error) {
+                    console.error('[Save Box API] Error:', error.message);
+                    await showAlert('Error', error.message, 'error');
+                } finally {
+                    btnSaveBox.disabled = false;
+                    btnSaveBox.innerHTML = originalText;
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>

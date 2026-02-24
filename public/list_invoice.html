@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice List - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>All Invoices List</h2>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <!-- 1. On Review -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-review h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice?status=review'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-review">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-label">On Review</div>
+                            <div class="stat-value" id="stat-review">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. On Forward -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-forward h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice?status=forward'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-forward">
+                                <i class="fas fa-share-square"></i>
+                            </div>
+                            <div class="stat-label">On Forward</div>
+                            <div class="stat-value" id="stat-forward">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Rejected -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-rejected h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice?status=rejected'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-rejected">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="stat-label">Rejected</div>
+                            <div class="stat-value" id="stat-rejected">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Accepted -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-accepted h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice?status=accepted'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-accepted">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-label">Accepted</div>
+                            <div class="stat-value" id="stat-accepted">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Total Invoices -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-total h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-total">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </div>
+                            <div class="stat-label">Total Invoices</div>
+                            <div class="stat-value" id="stat-total">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice List Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-file-invoice me-2"></i>System Invoices</h5>
+                    <button class="btn btn-sm btn-success">
+                        <i class="fas fa-download me-1"></i> Export Excel
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="invoicelist-table" class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Upload Date</th>
+                                    <th>Invoice Name</th>
+                                    <th>User ID</th>
+                                    <th>Amount (IDR)</th>
+                                    <th>Status</th>
+                                    <th style="width: 80px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicelist-body">
+                                <!-- Data populated via DataTables -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout
+            renderLayout('list_invoice');
+
+            const formatCurrency = (data) => new Intl.NumberFormat('id-ID').format(data || 0);
+
+            // Initialize DataTable
+            initDataTable('#invoicelist-table', {
+                processing: true,
+                serverSide: true,
+                ajax: async function (data, callback, settings) {
+                    const page = (data.start / data.length) + 1;
+                    const limit = data.length;
+                    const searchTerm = data.search ? data.search.value : '';
+
+                    try {
+                        const token = localStorage.getItem('refreshToken');
+                        const url = new URL(API_CONFIG.endpoints.invoiceList);
+                        url.searchParams.append('page', page);
+                        url.searchParams.append('limit', limit);
+
+                        if (searchTerm) {
+                            url.searchParams.append('search', searchTerm);
+                        }
+
+                        const response = await fetch(url.toString(), {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) throw new Error('Failed to fetch invoice list');
+
+                        const result = await response.json();
+
+                        callback({
+                            draw: data.draw,
+                            recordsTotal: result.totalItems || (Array.isArray(result) ? result.length : 0),
+                            recordsFiltered: result.totalItems || (Array.isArray(result) ? result.length : 0),
+                            data: Array.isArray(result) ? result : (Array.isArray(result.invoices) ? result.invoices : [])
+                        });
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                        callback({
+                            draw: data.draw,
+                            recordsTotal: 0,
+                            recordsFiltered: 0,
+                            data: []
+                        });
+                    }
+                },
+                columns: [
+                    {
+                        data: null,
+                        render: (data, type, row, meta) => meta.row + 1 + meta.settings._iDisplayStart,
+                        orderable: false
+                    },
+                    {
+                        data: 'tanggal_upload',
+                        render: (data) => data ? new Date(data).toLocaleDateString('id-ID') : '-'
+                    },
+                    {
+                        data: 'nama_invoice',
+                        className: 'fw-bold',
+                        render: (data) => data || '-'
+                    },
+                    {
+                        data: 'id_user',
+                        render: (data) => data || '-'
+                    },
+                    {
+                        data: 'total_harga',
+                        className: 'text-end fw-bold',
+                        render: (data) => `Rp ${formatCurrency(data)}`
+                    },
+                    {
+                        data: 'status',
+                        render: (data) => {
+                            const badges = {
+                                on_review: 'warning',
+                                approved: 'success',
+                                rejected: 'danger'
+                            };
+                            const color = badges[data] || 'secondary';
+                            return `<span class="badge bg-${color}">${data || '-'}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: (data, type, row) => `
+                            <div class="text-center">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice(${row.id})" title="View Invoice">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        `
+                    }
+                ],
+                order: [[1, 'desc']]
+            });
+
+            // ✅ FIXED: Call fetchSummary on page load
+            fetchSummary();
+        });
+
+        function viewInvoice(id) {
+            window.location.href = `/invoice_detail?id=${id}`;
+        }
+
+        async function fetchSummary() {
+            try {
+                const token = localStorage.getItem('refreshToken');
+                const response = await fetch(API_CONFIG.endpoints.dashboardInvoice, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch summary');
+
+                const data = await response.json();
+
+                // ✅ FIXED: Directly set values, no animation
+                document.getElementById('stat-review').innerText = data.on_review || 0;
+                document.getElementById('stat-forward').innerText = data.on_forward || 0;
+                document.getElementById('stat-rejected').innerText = data.rejected || 0;
+                document.getElementById('stat-accepted').innerText = data.accepted || 0;
+                document.getElementById('stat-total').innerText = data.total || 0;
+
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                showToast('Failed to load summary details', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

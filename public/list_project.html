@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Project - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>List Project</h2>
+            </div>
+
+            <!-- List Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-person-digging me-2"></i>Active Projects</h5>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#createProjectModal">
+                        <i class="fas fa-plus me-1"></i> Create Project
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="project-table" class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Project Name</th>
+                                    <th>Client</th>
+                                    <th>Start Date</th>
+                                    <th>Budget</th>
+                                    <th>Status</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createProjectModalLabel">Create New Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createProjectForm">
+                        <div class="mb-3">
+                            <label for="projectName" class="form-label">Project Name</label>
+                            <input type="text" class="form-control" id="projectName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">Client</label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" required>
+                            </div>
+                            <div class="col">
+                                <label for="budget" class="form-label">Budget ($)</label>
+                                <input type="number" class="form-control" id="budget" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectStatus" class="form-label">Initial Status</label>
+                            <select class="form-select" id="projectStatus">
+                                <option value="Planning">Planning</option>
+                                <option value="On Progress">On Progress</option>
+                                <option value="Hold">Hold</option>
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Save Project</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout
+            renderLayout('list_project');
+
+            let editingProjectId = null;
+
+            // Helper: build auth headers
+            function authHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                };
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                const d = new Date(dateStr);
+                if (isNaN(d)) return '-';
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+
+            function formatRupiah(amount) {
+                return 'Rp ' + amount.toLocaleString('id-ID');
+            }
+
+            // Fetch Projects from API (GET - no body, token in header)
+            async function fetchProjects() {
+                try {
+                    const response = await fetch(API_CONFIG.endpoints.projects, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        const projects = await response.json();
+                        renderProjects(projects);
+                    } else {
+                        console.error('Failed to fetch projects');
+                        document.querySelector('#project-table tbody').innerHTML =
+                            '<tr><td colspan="7" class="text-center text-danger">Failed to load projects.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.querySelector('#project-table tbody').innerHTML =
+                        '<tr><td colspan="7" class="text-center text-danger">Error loading projects.</td></tr>';
+                }
+            }
+
+            function renderProjects(projects) {
+                const tbody = document.querySelector('#project-table tbody');
+
+                // 1. Destroy existing DataTable if it exists
+                if (window.jQuery && $.fn.DataTable && $.fn.DataTable.isDataTable('#project-table')) {
+                    $('#project-table').DataTable().destroy();
+                }
+
+                if (!Array.isArray(projects) || projects.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No projects found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = projects.map((p, index) => {
+                    const projectId = p.id || p._id;
+                    return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><span class="fw-bold">${p.name || p.project_name}</span></td>
+                        <td>${p.client || '-'}</td>
+                        <td><small class="text-muted">${formatDate(p.start_date || p.start)}</small></td>
+                        <td>${formatRupiah(p.budget || 0)}</td>
+                        <td>
+                            <span class="badge ${getStatusBadgeClass(p.status)}">${p.status}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary btn-edit" 
+                                    data-id="${projectId}" 
+                                    data-name="${p.name || p.project_name}"
+                                    data-client="${p.client || ''}"
+                                    data-start="${p.start_date || p.start || ''}"
+                                    data-budget="${p.budget || 0}"
+                                    data-status="${p.status}"
+                                    title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${projectId}" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `}).join('');
+
+                // Add event listeners to buttons
+                document.querySelectorAll('.btn-edit').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const id = this.getAttribute('data-id');
+                        const name = this.getAttribute('data-name');
+                        const client = this.getAttribute('data-client');
+                        const start = this.getAttribute('data-start');
+                        const budget = this.getAttribute('data-budget');
+                        const status = this.getAttribute('data-status');
+
+                        openEditModal(id, name, client, start, budget, status);
+                    });
+                });
+
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const id = this.getAttribute('data-id');
+                        deleteProject(id);
+                    });
+                });
+
+                // 2. Re-initialize DataTable after rows are injected
+                if (typeof initDataTable === 'function') {
+                    initDataTable('#project-table');
+                }
+            }
+
+            function getStatusBadgeClass(status) {
+                switch (status) {
+                    case 'On Progress': return 'bg-success';
+                    case 'Planning': return 'bg-primary';
+                    case 'Hold': return 'bg-warning text-dark';
+                    case 'Completed': return 'bg-info';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            function openEditModal(id, name, client, start, budget, status) {
+                editingProjectId = id;
+                document.getElementById('createProjectModalLabel').innerText = 'Edit Project';
+                document.getElementById('projectName').value = name;
+                document.getElementById('clientName').value = client;
+                document.getElementById('startDate').value = start.split('T')[0]; // Handle ISO date if needed
+                document.getElementById('budget').value = budget;
+                document.getElementById('projectStatus').value = status;
+
+                const modal = new bootstrap.Modal(document.getElementById('createProjectModal'));
+                modal.show();
+            }
+
+            async function deleteProject(id) {
+                if (!await showConfirm('Delete Project', 'Are you sure you want to delete this project?')) return;
+
+                try {
+                    const response = await fetch(`${API_CONFIG.endpoints.projects}/${id}`, {
+                        method: 'DELETE',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        await showAlert('Success', 'Project deleted successfully!', 'success');
+                        fetchProjects();
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        await showAlert('Error', 'Failed to delete project: ' + (err.message || response.statusText), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting project:', error);
+                    await showAlert('Error', 'Error deleting project', 'error');
+                }
+            }
+
+            // Reset modal for "Create" mode
+            document.querySelector('[data-bs-target="#createProjectModal"]').addEventListener('click', function () {
+                editingProjectId = null;
+                document.getElementById('createProjectModalLabel').innerText = 'Create New Project';
+                document.getElementById('createProjectForm').reset();
+            });
+
+            // Handle Form Submit (POST for create, PUT/PATCH for update)
+            document.getElementById('createProjectForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                const projectData = {
+                    name: document.getElementById('projectName').value,
+                    client: document.getElementById('clientName').value,
+                    start_date: document.getElementById('startDate').value,
+                    budget: parseFloat(document.getElementById('budget').value),
+                    status: document.getElementById('projectStatus').value
+                };
+
+                const url = editingProjectId
+                    ? `${API_CONFIG.endpoints.projects}/${editingProjectId}`
+                    : API_CONFIG.endpoints.projects;
+
+                const method = editingProjectId ? 'PUT' : 'POST';
+
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: authHeaders(),
+                        body: JSON.stringify(projectData)
+                    });
+
+                    if (response.ok) {
+                        await showAlert('Success', editingProjectId ? 'Project updated successfully!' : 'Project created successfully!', 'success');
+                        const modalElement = document.getElementById('createProjectModal');
+                        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                        modal.hide();
+                        this.reset();
+                        fetchProjects(); // Refresh list
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        await showAlert('Error', 'Failed to save project: ' + (err.message || response.statusText), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error saving project:', error);
+                    await showAlert('Error', 'Error saving project', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+
+            // Initial Render
+            fetchProjects();
+        });
+    </script>
+</body>
+
+</html>

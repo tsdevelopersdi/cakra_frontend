@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Detail - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .invoice-card {
+            border-radius: 15px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+        }
+
+        .invoice-preview-container {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #dee2e6;
+            min-height: 500px;
+        }
+
+        .invoice-preview-container img {
+            max-width: 100%;
+            max-height: 700px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .editable-cell {
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .editable-cell:hover {
+            background-color: #f0f7ff;
+            border-color: #dee2e6;
+            cursor: pointer;
+        }
+
+        .editable-cell:focus {
+            background-color: #fff;
+            outline: 2px solid #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        #main-content {
+            overflow-x: hidden;
+        }
+
+        .table-responsive {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .save-btn-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/list_invoice"
+                                class="text-decoration-none text-muted">Invoices</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Invoice Detail</li>
+                    </ol>
+                </nav>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Print
+                    </button>
+                    <a href="/list_invoice" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left Column: Invoice Image (Placeholder) -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3 border-0">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-image me-2"></i>Invoice Scan Preview</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="invoice-preview-container">
+                                <!-- Using a reliable placeholder service -->
+                                <img src="https://placehold.co/600x800/e9ecef/495057?text=Invoice+Preview"
+                                    alt="Invoice Preview" id="invoice-image">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Editable Table & Info -->
+                <div class="col-lg-6">
+                    <!-- Invoice Summary Card -->
+                    <div class="card border-0 shadow-sm invoice-card mb-4">
+                        <div
+                            class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-0 text-primary fw-bold" id="detail-invoice-name">INV-20240224-001</h4>
+                                <p class="text-muted mb-0">Detailed breakdown of the invoice items (Editable)</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4 g-3">
+                                <div class="col-6">
+                                    <label class="text-muted d-block small mb-1">Upload Date</label>
+                                    <div class="fw-bold" id="detail-date">-</div>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <label class="text-muted d-block small mb-1">Status</label>
+                                    <span class="badge status-badge" id="detail-status"></span>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted d-block small mb-1">Creator Name</label>
+                                    <div class="fw-bold text-primary" id="detail-user-name">-</div>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <label class="text-muted d-block small mb-1">NIK / ID</label>
+                                    <div class="fw-bold" id="detail-user-nik">-</div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <h6 class="fw-bold mb-3">Itemized Breakdown</h6>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle" id="editable-invoice-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th class="text-center" style="width: 80px;">Qty</th>
+                                            <th class="text-end" style="width: 140px;">Price (IDR)</th>
+                                            <th class="text-end" style="width: 140px;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoice-items-body">
+                                        <tr>
+                                            <td>
+                                                <div class="editable-cell" contenteditable="true">UI/UX Design Services
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="editable-cell qty-input" contenteditable="true">1</div>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="editable-cell price-input" contenteditable="true">5000000
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold row-total">Rp 5.000.000</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="editable-cell" contenteditable="true">Frontend Development
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="editable-cell qty-input" contenteditable="true">1</div>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="editable-cell price-input" contenteditable="true">12500000
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold row-total">Rp 12.500.000</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="editable-cell" contenteditable="true">Backend Integration
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="editable-cell qty-input" contenteditable="true">1</div>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="editable-cell price-input" contenteditable="true">15000000
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold row-total">Rp 15.000.000</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light">
+                                            <td colspan="3" class="text-end fw-bold fs-5 py-3">Grand Total</td>
+                                            <td class="text-end fw-bold fs-5 text-primary py-3"
+                                                id="detail-total-amount">Rp 32.500.000</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Action Buttons Group -->
+                            <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+                                <button class="btn btn-outline-danger px-4 d-none" id="reject-btn">
+                                    <i class="fas fa-times me-2"></i> Reject
+                                </button>
+                                <button class="btn btn-outline-warning px-4 d-none" id="forward-btn">
+                                    <i class="fas fa-share me-2"></i> Forward
+                                </button>
+                                <button class="btn btn-primary px-4 d-none" id="update-btn">
+                                    <i class="fas fa-save me-2"></i> Update
+                                </button>
+
+                                <button class="btn btn-success px-4 d-none" id="approve-btn">
+                                    <i class="fas fa-save me-2"></i> Approve
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Role-based button visibility using centralized Auth utility
+            Auth.restrictInvoiceDetails({
+                rejectBtn: document.getElementById('reject-btn'),
+                forwardBtn: document.getElementById('forward-btn'),
+                updateBtn: document.getElementById('update-btn'),
+                approveBtn: document.getElementById('approve-btn')
+            });
+
+            // Initialize Layout
+            renderLayout('list_invoice');
+
+            const table = document.getElementById('editable-invoice-table');
+            const updateBtn = document.getElementById('update-btn');
+            const totalAmountEl = document.getElementById('detail-total-amount');
+            const itemsBody = document.getElementById('invoice-items-body');
+
+            // Get ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const invoiceId = urlParams.get('id');
+
+            // Format number to IDR
+            const formatCurrency = (amount) => {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount || 0);
+            };
+
+            // Calculate totals
+            function calculateTotals() {
+                let grandTotal = 0;
+                const rows = document.querySelectorAll('#invoice-items-body tr');
+
+                rows.forEach(row => {
+                    const qtyEl = row.querySelector('.qty-input');
+                    const priceEl = row.querySelector('.price-input');
+
+                    if (!qtyEl || !priceEl) return;
+
+                    const qty = parseFloat(qtyEl.innerText.replace(/[^0-9.]/g, '')) || 0;
+                    const price = parseFloat(priceEl.innerText.replace(/[^0-9.]/g, '')) || 0;
+                    const total = qty * price;
+
+                    row.querySelector('.row-total').innerText = formatCurrency(total);
+                    grandTotal += total;
+                });
+
+                totalAmountEl.innerText = formatCurrency(grandTotal);
+            }
+
+            // Fetch Invoice Details
+            async function fetchInvoiceData(id) {
+                try {
+                    const token = localStorage.getItem('refreshToken');
+                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetail}/${id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!response.ok) throw new Error('Failed to fetch invoice details');
+
+                    const data = await response.json();
+
+                    // Populate basic info
+                    document.getElementById('detail-invoice-name').innerText = data.nama_invoice || `INV-${id}`;
+                    document.getElementById('detail-date').innerText = data.tanggal_upload ? new Date(data.tanggal_upload).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+
+                    // Populate User details
+                    if (data.user) {
+                        document.getElementById('detail-user-name').innerText = data.user.name || '-';
+                        document.getElementById('detail-user-nik').innerText = data.user.nik || data.user.id || '-';
+                    }
+
+                    const statusEl = document.getElementById('detail-status');
+                    statusEl.innerText = data.status || 'Unknown';
+                    const statusColors = { approved: 'bg-success', rejected: 'bg-danger', on_review: 'bg-warning' };
+                    statusEl.className = `badge ${statusColors[data.status] || 'bg-secondary'} status-badge`;
+
+                    // Fetch Image using nama_invoice filename
+                    if (data.nama_invoice) {
+                        fetchInvoiceImage(data.nama_invoice);
+                    }
+
+                    // Populate transactions (items) table
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        itemsBody.innerHTML = '';
+                        data.transactions.forEach(item => {
+                            const row = document.createElement('tr');
+                            // Using merchant as description and jumlah as price
+                            row.innerHTML = `
+                                <td><div class="editable-cell" contenteditable="true">${item.merchant || ''}</div></td>
+                                <td class="text-center"><div class="editable-cell qty-input" contenteditable="true">1</div></td>
+                                <td class="text-end"><div class="editable-cell price-input" contenteditable="true">${item.jumlah || 0}</div></td>
+                                <td class="text-end fw-bold row-total">${formatCurrency(item.jumlah)}</td>
+                            `;
+                            itemsBody.appendChild(row);
+                        });
+                        calculateTotals();
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    showToast('Failed to load invoice details', 'error');
+                }
+            }
+
+            // Fetch Invoice Image
+            async function fetchInvoiceImage(filename) {
+                try {
+                    const token = localStorage.getItem('refreshToken');
+                    const imgEl = document.getElementById('invoice-image');
+
+                    // Fetch image using the filename path parameter
+                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${filename}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        imgEl.src = URL.createObjectURL(blob);
+                    }
+                } catch (error) {
+                    console.error('Error fetching image:', error);
+                }
+            }
+
+            // Listen for input changes in the table
+            table.addEventListener('input', function (e) {
+                if (e.target.classList.contains('editable-cell')) {
+                    if (e.target.classList.contains('qty-input') || e.target.classList.contains('price-input')) {
+                        calculateTotals();
+                    }
+                }
+            });
+
+            // Handle Update Button (Save)
+            updateBtn.addEventListener('click', async function () {
+                updateBtn.disabled = true;
+                const originalHtml = updateBtn.innerHTML;
+                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Updating...';
+
+                try {
+                    const rows = document.querySelectorAll('#invoice-items-body tr');
+                    const updatedTransactions = Array.from(rows).map(row => ({
+                        merchant: row.cells[0].innerText.trim(),
+                        jumlah: parseFloat(row.cells[2].innerText) || 0
+                        // Note: If you have more fields like category/date, they should be added here
+                    }));
+
+                    const token = localStorage.getItem('refreshToken');
+                    const response = await fetch(API_CONFIG.endpoints.saveInvoice, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: invoiceId,
+                            transactions: updatedTransactions
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update invoice');
+
+                    showToast('Invoice updated successfully!', 'success');
+                } catch (error) {
+                    console.error('Error updating invoice:', error);
+                    showToast('Failed to update invoice', 'error');
+                } finally {
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = originalHtml;
+                }
+            });
+
+            // Handle Reject Button
+            document.getElementById('reject-btn').addEventListener('click', function () {
+                showConfirm('Reject Invoice?', 'Are you sure you want to reject this invoice?', 'Yes, Reject')
+                    .then(async (confirmed) => {
+                        if (confirmed) {
+                            try {
+                                const token = localStorage.getItem('refreshToken');
+                                const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ id: invoiceId, status: 'rejected' })
+                                });
+
+                                if (!response.ok) throw new Error('Failed to reject invoice');
+
+                                showToast('Invoice rejected', 'success');
+                                setTimeout(() => window.location.href = '/list_invoice', 1500);
+                            } catch (error) {
+                                console.error('Error rejecting invoice:', error);
+                                showToast('Failed to reject invoice', 'error');
+                            }
+                        }
+                    });
+            });
+
+            // Handle Forward Button
+            document.getElementById('forward-btn').addEventListener('click', async function () {
+                try {
+                    const token = localStorage.getItem('refreshToken');
+                    const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: invoiceId, status: 'on_forward' })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to forward invoice');
+
+                    showToast('Invoice forwarded successfully!', 'success');
+                    setTimeout(() => window.location.href = '/list_invoice', 1500);
+                } catch (error) {
+                    console.error('Error forwarding invoice:', error);
+                    showToast('Failed to forward invoice', 'error');
+                }
+            });
+
+            // Handle Approve Button
+            document.getElementById('approve-btn').addEventListener('click', function () {
+                showConfirm('Approve Invoice?', 'Are you sure you want to approve this invoice?', 'Yes, Approve')
+                    .then(async (confirmed) => {
+                        if (confirmed) {
+                            try {
+                                const token = localStorage.getItem('refreshToken');
+                                const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ id: invoiceId, status: 'accepted' })
+                                });
+
+                                if (!response.ok) throw new Error('Failed to approve invoice');
+
+                                showToast('Invoice approved successfully!', 'success');
+                                setTimeout(() => window.location.href = '/list_invoice', 1500);
+                            } catch (error) {
+                                console.error('Error approving invoice:', error);
+                                showToast('Failed to approve invoice', 'error');
+                            }
+                        }
+                    });
+            });
+
+            // Initial Load
+            if (invoiceId) {
+                fetchInvoiceData(invoiceId);
+            } else {
+                showToast('No Invoice ID provided', 'warning');
+            }
+        });
+    </script>
+</body>
+
+</html>

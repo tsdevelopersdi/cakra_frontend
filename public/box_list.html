@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box List - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Box List</h2>
+            </div>
+
+            <!-- Box List Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-box me-2"></i>Box Configurations</h5>
+                    <button class="btn btn-sm btn-success">
+                        <i class="fas fa-download me-1"></i> Export Excel
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="boxlist-table" class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Box Name/Model</th>
+                                    <th>Dimensions</th>
+                                    <th>Panel Price (IDR)</th>
+                                    <th>Wiring Price (IDR)</th>
+                                    <th>Total Price (IDR)</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="boxlist-body">
+                                <!-- Data will be loaded via DataTables server-side -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout
+            renderLayout('box_list');
+
+            const formatCurrency = (data) => new Intl.NumberFormat('id-ID').format(data || 0);
+
+            // Initialize DataTable with Server-Side processing
+            initDataTable('#boxlist-table', {
+                processing: true,
+                serverSide: true,
+                ajax: async function (data, callback, settings) {
+                    const page = (data.start / data.length) + 1;
+                    const limit = data.length;
+                    const searchTerm = data.search ? data.search.value : '';
+
+                    try {
+                        const token = localStorage.getItem('refreshToken');
+                        const url = new URL(API_CONFIG.endpoints.boxlist);
+                        url.searchParams.append('page', page);
+                        url.searchParams.append('limit', limit);
+
+                        if (searchTerm) {
+                            url.searchParams.append('search', searchTerm);
+                        }
+
+                        const response = await fetch(url.toString(), {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) throw new Error('Failed to fetch box list');
+
+                        const result = await response.json();
+
+                        // Map Backend Response to DataTable format
+                        callback({
+                            draw: data.draw,
+                            recordsTotal: result.totalItems || 0,
+                            recordsFiltered: result.totalItems || 0,
+                            data: result.boxes || []
+                        });
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                        callback({
+                            draw: data.draw,
+                            recordsTotal: 0,
+                            recordsFiltered: 0,
+                            data: []
+                        });
+                    }
+                },
+                columns: [
+                    {
+                        data: null,
+                        render: (data, type, row, meta) => meta.row + 1 + meta.settings._iDisplayStart,
+                        orderable: false
+                    },
+                    {
+                        data: 'nama_panel',
+                        render: (data) => data || '-'
+                    },
+                    {
+                        data: 'ukuran_panel',
+                        render: (data) => data || '-'
+                    },
+                    {
+                        data: 'harga_panel',
+                        className: 'text-end fw-bold',
+                        render: (data) => formatCurrency(data)
+                    },
+                    {
+                        data: 'harga_wiring',
+                        className: 'text-end fw-bold',
+                        render: (data) => formatCurrency(data)
+                    },
+                    {
+                        data: null,
+                        className: 'text-end fw-bold text-primary',
+                        render: (data, type, row) => {
+                            const total = (row.harga_panel || 0) + (row.harga_wiring || 0);
+                            return formatCurrency(total);
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: (data, type, row) => `
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `
+                    }
+                ],
+                order: [[1, 'asc']]
+            });
+        });
+    </script>
+</body>
+
+</html>

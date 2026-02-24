@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Draft SLD - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>List Draft SLD</h2>
+            </div>
+
+            <!-- List Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-list me-2"></i>Draft SLD Records</h5>
+                    <a href="/upload_sld" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Upload
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="draft-table" class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Document Title</th>
+                                    <th>Project Name</th>
+                                    <th>Created At</th>
+                                    <th>Is Priced ?</th>
+                                    <th style="width: 150px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dummy data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout
+            renderLayout('list_draft');
+
+            // Helper: build auth headers
+            function authHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                };
+            }
+
+            // Fetch Drafts from API
+            async function fetchDrafts() {
+                try {
+                    // Using common 'listDrafts' endpoint or similar pattern
+                    const response = await fetch(API_CONFIG.endpoints.listDrafts || `${API_BASE_URL}/list-drafts`, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        const drafts = await response.json();
+                        renderDrafts(drafts);
+                    } else {
+                        console.error('Failed to fetch drafts:', response.statusText);
+                        document.querySelector('#draft-table tbody').innerHTML =
+                            '<tr><td colspan="6" class="text-center text-danger">Failed to load drafts.</td></tr>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching drafts:', error);
+                    document.querySelector('#draft-table tbody').innerHTML =
+                        '<tr><td colspan="6" class="text-center text-danger">Error connecting to server.</td></tr>';
+                }
+            }
+
+            function renderDrafts(drafts) {
+                const tbody = document.querySelector('#draft-table tbody');
+
+                // Destroy existing DataTable if it exists
+                if (window.jQuery && $.fn.DataTable && $.fn.DataTable.isDataTable('#draft-table')) {
+                    $('#draft-table').DataTable().destroy();
+                }
+
+                if (!Array.isArray(drafts) || drafts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No drafts found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = drafts.map((draft, index) => {
+                    const status = draft.is_priced || 'no';
+                    const badgeClass = status === 'yes' ? 'bg-success' : 'bg-secondary';
+
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><span class="fw-bold text-dark">${draft.draft_name || draft.title || '-'}</span></td>
+                            <td>${draft.project?.project_name || draft.project_name || '-'}</td>
+                            <td><span class="text-muted small">${draft.created_at || draft.createdAt || '-'}</span></td>
+                            <td>
+                                <span class="badge ${badgeClass}">${status}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/edit_draft.html?id=${draft.id}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Initialize/Re-initialize DataTable
+                initDataTable('#draft-table');
+            }
+
+            // Initial fetch
+            fetchDrafts();
+        });
+    </script>
+</body>
+
+</html>

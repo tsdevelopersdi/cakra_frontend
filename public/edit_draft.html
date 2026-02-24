@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Draft SLD - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Edit Draft SLD</h2>
+                <a href="/list_draft" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+            </div>
+
+            <!-- Edit Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-edit me-2"></i>Draft Details</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-success" id="btn-save-edit">
+                            <i class="fas fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="loading-spinner" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading draft data...</p>
+                    </div>
+
+                    <div id="edit-content" class="d-none">
+                        <!-- Info Panel -->
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-body py-3 d-flex align-items-center">
+                                <i class="fas fa-file-invoice fa-2x text-primary me-3 opacity-50"></i>
+                                <div>
+                                    <h5 class="mb-0 fw-bold" id="display-doc-title">-</h5>
+                                    <p class="text-muted small mb-0" id="display-project-name">Project: -</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="edit-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 50px;">No</th>
+                                        <th style="width: 80px;">Qty</th>
+                                        <th style="width: 80px;">Unit</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Brand</th>
+                                        <th>Price</th>
+                                        <th>Disc</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="edit-tbody">
+                                    <!-- Rows populated via API -->
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                id="btn-add-row">
+                                                <i class="fas fa-plus me-1"></i> Add Row
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout (no active page highlight)
+            renderLayout('list_draft');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const draftId = urlParams.get('id');
+
+            if (!draftId) {
+                showAlert('Error', 'No Draft ID provided.', 'error').then(() => {
+                    window.location.href = '/list_draft';
+                });
+                return;
+            }
+
+            // Helper: build auth headers
+            function authHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                };
+            }
+
+            // Fetch Draft Data
+            async function fetchDraftDetail() {
+                try {
+                    // 1. Fetch the list to get metadata (doc title, project name)
+                    // This matches price_finder.html's "load draft" behavior where metadata comes from the list
+                    const listResponse = await fetch(API_CONFIG.endpoints.listDrafts, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    let draftMetadata = {};
+                    if (listResponse.ok) {
+                        const drafts = await listResponse.json();
+                        // Find the specific draft in the list to get its name and project
+                        draftMetadata = drafts.find(d => String(d.id) === String(draftId)) || {};
+                        console.log('[Edit Draft] Metadata from List:', draftMetadata);
+                    }
+
+                    // 2. Fetch the detail to get the actual items
+                    const detailResponse = await fetch(`${API_CONFIG.endpoints.listDrafts}/${draftId}`, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (detailResponse.ok) {
+                        const detailResult = await detailResponse.json();
+                        const detailData = detailResult.data || detailResult;
+
+                        // Merge metadata from list with items from detail
+                        // We use the same keys as populateDraftData expects
+                        const combinedDraft = {
+                            ...draftMetadata,
+                            items: detailData.items || detailData.data || (Array.isArray(detailData) ? detailData : [])
+                        };
+
+                        console.log('[Edit Draft] Combined Data:', combinedDraft);
+                        populateDraftData(combinedDraft);
+                    } else {
+                        showAlert('Error', 'Failed to fetch draft details.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showAlert('Error', 'An error occurred while fetching draft data.', 'error');
+                }
+            }
+
+            let currentDocTitle = '';
+            let currentProjectName = '';
+
+            function populateDraftData(draft) {
+                // Set metadata - prioritize draft_name/project_name from the list metadata
+                currentDocTitle = draft.draft_name || draft.title || 'Untitled Draft';
+                currentProjectName = draft.project?.project_name || draft.project_name || '-';
+
+                document.getElementById('display-doc-title').textContent = currentDocTitle;
+                document.getElementById('display-project-name').innerHTML = `<i class="fas fa-project-diagram me-1"></i> Project: <b>${currentProjectName}</b>`;
+
+                // Extract items
+                const items = draft.items || (Array.isArray(draft.data) ? draft.data : []);
+
+                const tbody = document.getElementById('edit-tbody');
+                tbody.innerHTML = '';
+
+                if (!items || items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">No items in this draft.</td></tr>';
+                } else {
+                    items.forEach((item, index) => {
+                        addRow(item, index + 1);
+                    });
+                }
+
+                document.getElementById('loading-spinner').classList.add('d-none');
+                document.getElementById('edit-content').classList.remove('d-none');
+            }
+
+            function addRow(item = {}, fallbackNo = '') {
+                const tbody = document.getElementById('edit-tbody');
+                // Remove empty state if present
+                if (tbody.querySelector('td[colspan]')) {
+                    tbody.innerHTML = '';
+                }
+
+                const row = document.createElement('tr');
+
+                // Define field mappings consistent with price_finder.html
+                const no = item.no || item.NO || fallbackNo;
+                const qty = item.qty || item.quantity || item.QTY || '';
+                const unit = item.unit || item.SAT || item.UNIT || '';
+                const desc = item.description || item.name || item.DESCRIPTION || '';
+                const type = item.type || item.TYPE || '';
+                const brand = item.brand_merk || item.MERK || item.brand || '';
+                const price = item.price || item.PRICE || '';
+                const disc = item.disc || item.DISC || '';
+
+                row.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${no}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${qty}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${unit}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent fw-bold" value="${desc}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${type}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${brand}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${price}"></td>
+                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${disc}"></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm text-danger btn-delete-row"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+
+                row.querySelector('.btn-delete-row').addEventListener('click', function () {
+                    row.remove();
+                    if (tbody.children.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No items. Click Add Row to start.</td></tr>';
+                    }
+                });
+
+                tbody.appendChild(row);
+            }
+
+            document.getElementById('btn-add-row').addEventListener('click', () => addRow());
+
+            // Save Data
+            document.getElementById('btn-save-edit').addEventListener('click', async function () {
+                const docTitle = currentDocTitle;
+                const projectName = currentProjectName;
+                const rows = document.querySelectorAll('#edit-tbody tr');
+                const items = [];
+
+                if (!docTitle) {
+                    showAlert('Warning', 'Draft title missing.', 'warning');
+                    return;
+                }
+
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    if (inputs.length >= 8) { // Updated for new columns
+                        items.push({
+                            no: inputs[0].value,
+                            quantity: inputs[1].value,
+                            unit: inputs[2].value,
+                            description: inputs[3].value,
+                            type: inputs[4].value,
+                            brand_merk: inputs[5].value,
+                            price: inputs[6].value,
+                            disc: inputs[7].value
+                        });
+                    }
+                });
+
+                if (items.length === 0) {
+                    showAlert('Warning', 'Cannot save an empty draft.', 'warning');
+                    return;
+                }
+
+                const saveBtn = this;
+                const originalHTML = saveBtn.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                try {
+                    const response = await fetch(API_CONFIG.endpoints.update_sld, {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: JSON.stringify({
+                            projectId: projectName,
+                            documentTitle: docTitle,
+                            items: items
+                        })
+                    });
+
+                    if (response.ok) {
+                        await showAlert('Success', 'Draft updated successfully!', 'success');
+                        window.location.href = '/list_draft';
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        showAlert('Error', 'Failed to update draft: ' + (err.message || response.statusText), 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showAlert('Error', 'An error occurred while saving.', 'error');
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalHTML;
+                }
+            });
+
+            // Initial Load
+            fetchDraftDetail();
+        });
+    </script>
+</body>
+
+</html>

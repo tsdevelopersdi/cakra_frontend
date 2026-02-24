@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance User - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Main Content -->
+        <!-- Note: Navbar is injected by layout.js at the top of #content -->
+        <div id="main-content" class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Upload SLD</h2>
+            </div>
+
+
+            <!-- Main Content Row -->
+            <div class="row">
+                <!-- Left Column: Upload Form -->
+                <div class="col-md-5">
+                    <div class="card mb-4 border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0 text-primary"><i class="fas fa-upload me-2"></i>Upload SLD Image</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="upload-form">
+                                <div class="mb-3">
+                                    <label for="sldImage" class="form-label">Select SLD Image</label>
+                                    <input class="form-control" type="file" id="sldImage" accept="image/*" required>
+                                </div>
+                                <div class="mb-3 text-center bg-light p-3 rounded"
+                                    style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                                    <span id="preview-placeholder" class="text-muted">Image Preview</span>
+                                    <img id="image-preview" src="#" alt="Image Preview"
+                                        class="img-fluid d-none border rounded" style="max-height: 300px;">
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary" id="btn-submit-upload">
+                                        <i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Extraction Results -->
+                <div class="col-md-7">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-success"><i class="fas fa-table me-2"></i>Extraction Results</h5>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select id="project-select" class="form-select form-select-sm" style="width: 180px;">
+                                    <option value="">Choose Project...</option>
+                                    <!-- Options populated via API -->
+                                </select>
+                                <input type="text" id="document-title" class="form-control form-control-sm"
+                                    placeholder="Document Title..." style="width: 180px;">
+                                <button class="btn btn-sm btn-save-data d-none" id="btn-save-data">
+                                    <i class="fas fa-save me-1"></i> Save Data
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Empty State -->
+                            <div id="result-empty" class="text-center text-muted py-5">
+                                <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                                <p>Upload an image to see extracted data here.</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div id="result-loading" class="text-center py-5 d-none">
+                                <div class="spinner-border text-primary mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted">Processing image with n8n...</p>
+                            </div>
+
+                            <!-- Result Table -->
+                            <div id="result-content" class="d-none">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="result-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 50px;">No</th>
+                                                <th style="width: 80px;">Qty</th>
+                                                <th style="width: 80px;">Unit</th>
+                                                <th>Description</th>
+                                                <th>Type</th>
+                                                <th>Brand</th>
+                                                <th style="width: 50px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="result-tbody">
+                                            <!-- Rows will be injected here -->
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="4" class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        id="btn-add-row">
+                                                        <i class="fas fa-plus me-1"></i> Add Row
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Layout JS -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Layout with active page
+            renderLayout('upload_sld');
+
+            // Fetch Projects
+            fetchProjects();
+
+            function resetUploadPage() {
+                // 1. Reset forms
+                document.getElementById('upload-form').reset();
+                document.getElementById('document-title').value = '';
+                document.getElementById('project-select').value = '';
+
+                // 2. Clear Image Preview
+                const preview = document.getElementById('image-preview');
+                const previewPlaceholder = document.getElementById('preview-placeholder');
+                preview.src = '#';
+                preview.classList.add('d-none');
+                if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+
+                // 3. Reset UI States for Results
+                document.getElementById('result-empty').classList.remove('d-none');
+                document.getElementById('result-content').classList.add('d-none');
+                document.getElementById('result-loading').classList.add('d-none');
+                document.getElementById('btn-save-data').classList.add('d-none');
+
+                // 4. Clear Table Body
+                document.getElementById('result-tbody').innerHTML = '';
+            }
+
+            // Helper: build auth headers
+            function authHeaders() {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                };
+            }
+
+            async function fetchProjects() {
+                const projectSelect = document.getElementById('project-select');
+                try {
+                    // Switch to GET to match list_project.html pattern
+                    const response = await fetch(API_CONFIG.endpoints.projects, {
+                        method: 'GET',
+                        headers: authHeaders()
+                    });
+
+                    if (response.ok) {
+                        const projects = await response.json();
+                        // Clear existing except placeholder
+                        projectSelect.innerHTML = '<option value="">Choose Project...</option>';
+                        if (Array.isArray(projects)) {
+                            projects.forEach(p => {
+                                const option = document.createElement('option');
+                                // option.value = p.id; -> this is if i want use ID
+                                option.value = p.project_name; // -> this is if i want use project name
+                                // Handle both p.name and p.project_name
+                                option.textContent = p.project_name;
+                                projectSelect.appendChild(option);
+                            });
+                        }
+                    } else {
+                        console.error('Failed to fetch projects:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error fetching projects:', error);
+                }
+            }
+
+            // Image Preview Functionality
+            const sldInput = document.getElementById('sldImage');
+            const preview = document.getElementById('image-preview');
+            const previewPlaceholder = document.getElementById('preview-placeholder');
+
+            sldInput.addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.src = e.target.result;
+                        preview.classList.remove('d-none');
+                        if (previewPlaceholder) previewPlaceholder.style.display = 'none';
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = '#';
+                    preview.classList.add('d-none');
+                    if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+                }
+            });
+
+            // Handle Form Submit
+            document.getElementById('upload-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // UI Elements
+                const btnSubmit = document.getElementById('btn-submit-upload');
+                const emptyState = document.getElementById('result-empty');
+                const loadingState = document.getElementById('result-loading');
+                const contentState = document.getElementById('result-content');
+                const saveBtn = document.getElementById('btn-save-data');
+                const tbody = document.getElementById('result-tbody');
+
+                // 1. Show Loading
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+                emptyState.classList.add('d-none');
+                contentState.classList.add('d-none');
+                loadingState.classList.remove('d-none');
+                saveBtn.classList.add('d-none');
+
+                // 2. Execute Real n8n API Call
+                const file = sldInput.files[0];
+                if (!file) {
+                    showAlert('Warning', 'Please select a file first.', 'warning').then(() => {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n';
+                    });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch(N8N_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+                        return response.json();
+                    })
+                    .then(data => {
+                        // n8n might return the array directly or inside an object
+                        const results = Array.isArray(data) ? data : (data.results || []);
+                        console.log(results)
+
+                        // 3. Render Data
+                        tbody.innerHTML = '';
+                        if (results.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No data extracted from the image.</td></tr>';
+                        } else {
+                            results.forEach((item) => {
+                                const row = `
+                                <tr>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.no || item.NO}"></td>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.quantity || item.QUANTITY}"></td>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.unit || item.UNIT}"></td>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.description || item.DESCRIPTION}"></td>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.type || item.TYPE}"></td>
+                                    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${item.brand_merk || item.BRAND_MERK}"></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm text-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                                tbody.insertAdjacentHTML('beforeend', row);
+                            });
+                        }
+
+                        // 4. Update UI
+                        loadingState.classList.add('d-none');
+                        contentState.classList.remove('d-none');
+                        saveBtn.classList.remove('d-none');
+                    })
+                    .catch(error => {
+                        console.error('Error uploading to n8n:', error);
+                        loadingState.classList.add('d-none');
+                        emptyState.classList.remove('d-none');
+                        showAlert('Error', 'Failed to process image: ' + error.message, 'error');
+                    })
+                    .finally(() => {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n';
+                    });
+            });
+
+            // Add Row Functionality
+            const btnAddRow = document.getElementById('btn-add-row');
+            if (btnAddRow) {
+                btnAddRow.addEventListener('click', function () {
+                    const tbody = document.getElementById('result-tbody');
+                    const row = `
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="No"></td>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Qty"></td>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Unit"></td>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Description"></td>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Type"></td>
+                            <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Brand"></td>
+                            <td class="text-center">
+                                <button class="btn btn-sm text-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+            // Save Data Functionality
+            const saveBtn = document.getElementById('btn-save-data');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async function () {
+                    const tbody = document.getElementById('result-tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    const itemsToSave = [];
+                    const docTitle = document.getElementById('document-title').value.trim();
+                    const projectId = document.getElementById('project-select').value;
+
+                    if (!projectId) {
+                        await showAlert('Warning', 'Please choose a Project before saving.', 'warning');
+                        document.getElementById('project-select').focus();
+                        return;
+                    }
+
+                    if (!docTitle) {
+                        await showAlert('Warning', 'Please enter a Document Title before saving.', 'warning');
+                        document.getElementById('document-title').focus();
+                        return;
+                    }
+
+                    if (rows.length === 0 || (rows.length === 1 && rows[0].querySelector('td[colspan]'))) {
+                        await showAlert('Warning', 'No data to save.', 'warning');
+                        return;
+                    }
+
+                    // 1. Extract Data
+                    rows.forEach(row => {
+                        const inputs = row.querySelectorAll('input');
+                        if (inputs.length >= 6) {
+                            itemsToSave.push({
+                                no: inputs[0].value,
+                                quantity: inputs[1].value,
+                                unit: inputs[2].value,
+                                description: inputs[3].value,
+                                type: inputs[4].value,
+                                brand_merk: inputs[5].value
+                            });
+                        }
+                    });
+
+                    // 2. Disable button and show loading
+                    const originalContent = saveBtn.innerHTML;
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+                    // 3. Post to API
+                    try {
+                        const response = await fetch(API_CONFIG.endpoints.saveSld, {
+                            method: 'POST',
+                            headers: authHeaders(),
+                            body: JSON.stringify({
+                                // refreshToken: localStorage.getItem('refreshToken'), // Removed from body
+                                projectId: projectId,
+                                documentTitle: docTitle,
+                                items: itemsToSave
+                            })
+                        });
+
+                        if (response.ok) {
+                            await showAlert('Success', 'Data saved successfully!', 'success');
+                            resetUploadPage();
+                        } else if (response.status === 403) {
+                            console.warn('Unauthorized (403) detected during save. Logging out.');
+                            Auth.logout();
+                        } else {
+                            const errData = await response.json().catch(() => ({}));
+                            await showAlert('Error', 'Failed to save data: ' + (errData.message || response.statusText), 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error saving data:', error);
+                        await showAlert('Error', 'An error occurred while saving data: ' + error.message, 'error');
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = originalContent;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

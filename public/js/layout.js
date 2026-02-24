@@ -1,84 +1,81 @@
-function performLogout() {
-    // 1. Clear Local Flag
-    localStorage.removeItem('session_active');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
-    // 2. Clear Session Cookies (Best Effort for client-side)
-    document.cookie = 'refreshToken=; Max-Age=0; path=/;';
-
-    // 3. Redirect
-    window.location.href = '/login';
-}
-
-function checkSession() {
-    const isLoginPage = window.location.pathname.includes('/login');
-    if (isLoginPage) return;
-
-    // We use localStorage because HttpOnly cookies (or cross-domain cookies) cannot be read by JS.
-    const isLoggedIn = localStorage.getItem('session_active');
-
-    if (!isLoggedIn) {
-        console.log('No session marker found, redirecting to login.');
-        performLogout();
-        return;
-    }
-
-    // Role-based access control
-    const userStr = localStorage.getItem('user');
-    let user = {};
-    try {
-        user = JSON.parse(userStr) || {};
-    } catch (e) { }
-
-    // If the role is explicitly 'user', log them out immediately since this app is for HR only
-    if (user.role === 'user') {
-        console.warn('Access denied: User role is not authorized for this dashboard.');
-        performLogout();
-        return;
-    }
-
-    const isUserManagementPage = window.location.pathname.includes('/user_management');
-    if (isUserManagementPage && user.role !== 'admin' && user.role !== 'super admin') {
-        console.warn('Access denied: User is not an admin.');
-        window.location.href = '/attendance_user';
-    }
-}
-
-console.log(localStorage.getItem('user'));
-// console.log(localStorage.getItem('role'));
-// Run immediately
-checkSession();
+// Run session check immediately on every page that includes layout.js
+Auth.checkSession();
 
 function renderLayout(activePage) {
-    const userStr = localStorage.getItem('user');
-    let user = {};
-    try {
-        user = JSON.parse(userStr) || {};
-    } catch (e) { }
-    const isAdmin = user.role === 'admin' || user.role === 'super admin';
-    // const isAdmin = user.role !== 'user';
+    const user = Auth.getUser();
+    const role = Auth.getUserRole();
 
     // 1. Inject Sidebar
+    let sidebarItems = '';
+
+    if (role === 'user') {
+        // User role only sees Invoice Upload
+        sidebarItems = `
+            <li>
+                <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Invoice Upload</span>
+                </a>
+            </li>
+        `;
+    } else {
+        // Admin/Manager/Others see everything
+        sidebarItems = `
+            <li>
+                <a href="/list_project" class="${activePage === 'list_project' ? 'active' : ''}">
+                    <i class="fas fa-person"></i> <span>List Project</span>
+                </a>
+            </li>
+            <li>
+                <a href="/list_draft" class="${activePage === 'list_draft' ? 'active' : ''}">
+                    <i class="fas fa-list"></i> <span>List Draft SLD</span>
+                </a>
+            </li>
+            <li>
+                <a href="/price_finder" class="${activePage === 'price_finder' ? 'active' : ''}">
+                    <i class="fas fa-dollar"></i> <span>Price Finder</span>
+                </a>
+            </li>
+            <li>
+                <a href="/upload_sld" class="${activePage === 'upload_sld' ? 'active' : ''}">
+                    <i class="fas fa-file-export"></i> <span>Upload SLD</span>
+                </a>
+            </li>
+            <li>
+                <a href="/table_penawaran" class="${activePage === 'table_penawaran' ? 'active' : ''}">
+                    <i class="fas fa-file-invoice"></i> <span>Table Penawaran</span>
+                </a>
+            </li>
+            <li>
+                <a href="/pricelist" class="${activePage === 'pricelist' ? 'active' : ''}">
+                    <i class="fas fa-table"></i> <span>Pricelist</span>
+                </a>
+            </li>
+            <li>
+                <a href="/box_list" class="${activePage === 'box_list' ? 'active' : ''}">
+                    <i class="fas fa-box"></i> <span>Box List</span>
+                </a>
+            </li>
+            <li>
+                <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Invoice Upload</span>
+                </a>
+            </li>
+            <li>
+                <a href="/list_invoice" class="${activePage === 'list_invoice' ? 'active' : ''}">
+                    <i class="fas fa-file-invoice"></i> <span>List Invoice</span>
+                </a>
+            </li>
+        `;
+    }
+
     const sidebarHTML = `
     <nav id="sidebar">
         <div class="sidebar-header">
-            <h3><img src="img/gmt.png" alt="Logo" class="me-2" style="max-width: 70px;"></h3>
+            <h3>CAKRA AI</h3>
         </div>
 
         <ul class="list-unstyled components">
-            <li>
-                <a href="/attendance_user" class="${activePage === 'attendance_user' ? 'active' : ''}">
-                    <i class="fas fa-user"></i> Attendance User
-                </a>
-            </li>
-            ${isAdmin ? `
-            <li>
-                <a href="/user_management" class="${activePage === 'user_management' ? 'active' : ''}">
-                    <i class="fas fa-users"></i> User Management
-                </a>
-            </li>
-            ` : ''}
+            ${sidebarItems}
         </ul>
     </nav>
     <!-- Overlay -->
@@ -89,8 +86,11 @@ function renderLayout(activePage) {
 
     // 2. Inject Navbar into the beginning of #content
     const navbarHTML = `
-    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+    <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container-fluid">
+            <button type="button" id="sidebarCollapse" class="btn btn-outline-danger me-3">
+                <i class="fas fa-bars"></i>
+            </button>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -99,10 +99,10 @@ function renderLayout(activePage) {
                 <ul class="navbar-nav mb-2 mb-lg-0">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle fa-lg"></i> ${user.email || 'Admin User'} <span class="text-muted small ms-1">(${user.role || ''})</span>
+                            <i class="fas fa-user-shield fa-lg me-1"></i> ${user.email || 'Admin User'} <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">${user.role || ''}</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="#" id="logoutLink">Logout</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="#" id="logoutLink"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -123,11 +123,34 @@ function renderLayout(activePage) {
 
 function initializeLayoutInteractions() {
     const logoutLink = document.getElementById('logoutLink');
-
     if (logoutLink) {
         logoutLink.addEventListener('click', function (e) {
             e.preventDefault();
-            performLogout();
+            Auth.logout();
+        });
+    }
+
+    // Sidebar Toggle Logic
+    const sidebarCollapse = document.getElementById('sidebarCollapse');
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+
+    // 1. Check LocalStorage on init
+    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        content.classList.add('collapsed');
+    }
+
+    // 2. Toggle Event
+    if (sidebarCollapse) {
+        sidebarCollapse.addEventListener('click', function () {
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+
+            // Save state
+            const currentState = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar_collapsed', currentState);
         });
     }
 }
@@ -161,7 +184,7 @@ async function initDataTable(selector, options = {}) {
             $(document).ajaxError(function (event, jqXHR, ajaxSettings, thrownError) {
                 if (jqXHR.status === 403) {
                     console.warn('Unauthorized (403) detected. Logging out.');
-                    performLogout();
+                    Auth.logout();
                 }
             });
         }
@@ -216,3 +239,58 @@ function loadCSS(href) {
     link.href = href;
     document.head.appendChild(link);
 }
+
+// SweetAlert2 Helpers
+async function ensureSwal() {
+    if (window.Swal) return;
+    try {
+        await loadScript('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+    } catch (e) {
+        console.error('Failed to load SweetAlert2:', e);
+    }
+}
+
+async function showAlert(title, text, icon = 'info') {
+    await ensureSwal();
+    if (window.Swal) {
+        return Swal.fire({ title, text, icon, confirmButtonColor: '#d33' });
+    }
+    alert(text || title);
+}
+
+async function showConfirm(title, text, confirmButtonText = 'Yes', icon = 'warning') {
+    await ensureSwal();
+    if (window.Swal) {
+        const result = await Swal.fire({
+            title,
+            text,
+            icon,
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText
+        });
+        return result.isConfirmed;
+    }
+    return confirm(text || title);
+}
+
+async function showToast(title, icon = 'success') {
+    await ensureSwal();
+    if (window.Swal) {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+        Toast.fire({ icon, title });
+    }
+}
+
+// Export to window
+window.showAlert = showAlert;
+window.showConfirm = showConfirm;
+window.showToast = showToast;
+window.ensureSwal = ensureSwal;
