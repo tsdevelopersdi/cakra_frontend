@@ -78,8 +78,15 @@
             // Fetch Drafts from API
             async function fetchDrafts() {
                 try {
-                    // Using common 'listDrafts' endpoint or similar pattern
-                    const response = await fetch(API_CONFIG.endpoints.listDrafts || `${API_BASE_URL}/list-drafts`, {
+                    const activeWs = Workspace.getActiveProject();
+                    let url = API_CONFIG.endpoints.listDrafts || `${API_BASE_URL}/list-drafts`;
+
+                    // Filter by project if active
+                    if (activeWs && activeWs.id) {
+                        url += (url.includes('?') ? '&' : '?') + `project_id=${activeWs.id}`;
+                    }
+
+                    const response = await fetch(url, {
                         method: 'GET',
                         credentials: 'include',
                         headers: authHeaders()

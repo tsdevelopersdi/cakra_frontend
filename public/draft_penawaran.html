@@ -46,6 +46,9 @@
         <div id="main-content" class="container-fluid p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold"><i class="fas fa-file-invoice text-primary me-2"></i>Table Penawaran</h2>
+                <button id="btn-export-excel" class="btn btn-success shadow-sm d-none">
+                    <i class="fas fa-file-excel me-1"></i> EXPORT TO EXCEL
+                </button>
             </div>
 
             <!-- Top Control Panel -->
@@ -59,7 +62,7 @@
                                 offer table</p>
                         </div>
                     </div>
-                    <div>
+                    <div class="d-none">
                         <button id="btn-load-project" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#loadProjectModal">
                             <i class="fas fa-search me-1"></i> Load Project
@@ -148,9 +151,15 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Excel Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/layout.js"></script>
+    <script src="js/excel_format.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Render sidebar
@@ -202,28 +211,29 @@
             // --- Interaction Logic ---
             document.getElementById('loadProjectModal').addEventListener('show.bs.modal', fetchProjects);
 
-            projectTbody.addEventListener('click', async function (e) {
-                if (e.target.classList.contains('btn-select-project')) {
-                    const name = e.target.dataset.name;
-                    const id = e.target.dataset.id;
+            // --- Auto-Load Logic (Workspace) ---
+            const activeProject = Workspace.getActiveProject();
+            if (activeProject) {
+                // Close modal (if by chance it's open)
+                const modalEl = document.getElementById('loadProjectModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
 
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('loadProjectModal'));
-                    modal.hide();
+                // Show Loading
+                emptyState.classList.add('d-none');
+                resultContent.classList.add('d-none');
+                loadingState.classList.remove('d-none');
 
-                    // Show Loading
-                    emptyState.classList.add('d-none');
-                    resultContent.classList.add('d-none');
-                    loadingState.classList.remove('d-none');
+                // Update UI
+                displayTitle.textContent = activeProject.project_name;
+                displayInfo.textContent = `Project ID: ${activeProject.id} | Fetching items...`;
 
-                    // Update UI
-                    displayTitle.textContent = name;
-                    displayInfo.textContent = `Project ID: ${id} | Fetching items...`;
-
-                    // Fetch Real Data from API
-                    await fetchProjectData(name, id);
-                }
-            });
+                // Fetch Real Data from API
+                fetchProjectData(activeProject.project_name, activeProject.id);
+            } else {
+                // Safeguard handled by layout.js redirection
+                displayTitle.textContent = "No Project Selected";
+            }
 
             async function fetchProjectData(projectName, projectId) {
                 try {
@@ -255,13 +265,24 @@
 
                     loadingState.classList.add('d-none');
                     resultContent.classList.remove('d-none');
+                    document.getElementById('btn-export-excel').classList.remove('d-none');
                     displayInfo.textContent = `Project: ${projectName} | Data loaded successfully`;
                     showToast('Project data loaded successfully!', 'success');
+
+                    // Globalize data for export
+                    window.currentProjectData = {
+                        projectName: projectName,
+                        projectId: projectId,
+                        items: items,
+                        totalHarga: totalHarga,
+                        customer: activeProject.client || activeProject.customer || '-'
+                    };
 
                 } catch (error) {
                     console.error('Error loading project data:', error);
                     loadingState.classList.add('d-none');
                     emptyState.classList.remove('d-none');
+                    document.getElementById('btn-export-excel').classList.add('d-none');
                     showAlert('Info', error.message, 'info');
                 }
             }
@@ -304,6 +325,44 @@
                     </tr>
                 `;
             }
+
+            // --- EXCEL EXPORT LOGIC ---
+            document.getElementById('btn-export-excel').addEventListener('click', async function () {
+                if (!window.currentProjectData) return;
+
+                try {
+                    const rawData = window.currentProjectData;
+
+                    // Map data to the new schema expected by ExcelFormatter
+                    const exportData = {
+                        nomor: `00${Math.floor(Math.random() * 100)}/CRT/II/${new Date().getFullYear()}`, // Default placeholder
+                        hal: 'Penawaran Harga',
+                        proyek: rawData.projectName,
+                        tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        ptTujuan: rawData.customer || '-',
+                        upTujuan: '-',
+                        items: rawData.items.map(item => ({
+                            nama: item.nama_panel || '-',
+                            qty: parseFloat(item.qty) || 0,
+                            satuan: item.satuan || 'Unit',
+                            harga: parseFloat(item.harga_awal_rp) || 0,
+                            disc: parseFloat(item.disc) || 0
+                        })),
+                        keterangan: {
+                            loco: 'Jakarta (On Truck), belum termasuk packing',
+                            merk: 'SCHNEIDER',
+                            delivery: '6-8 minggu, setelah PO & DP diterima serta gambar diapproved',
+                            payment: '50% DP, 50% Before Delivery'
+                        }
+                    };
+
+                    await ExcelFormatter.generateOfferExcel(exportData);
+                    showToast('Excel file generated successfully!', 'success');
+                } catch (error) {
+                    console.error('Excel Export Error:', error);
+                    showToast('Failed to generate Excel file.', 'error');
+                }
+            });
         });
     </script>
 </body>

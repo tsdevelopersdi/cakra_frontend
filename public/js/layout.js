@@ -1,3 +1,33 @@
+/**
+ * Workspace Utility
+ * Manages the active project context for the engineering modules.
+ */
+const Workspace = {
+    STORAGE_KEY: 'cakra_active_project',
+    getActiveProject() {
+        try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || null; }
+        catch (e) { return null; }
+    },
+    setActiveProject(project) {
+        if (!project) return;
+        const id = project.id || project.ID;
+        if (!id) {
+            console.error('Invalid project data (missing ID) provided to Workspace.setActiveProject:', project);
+            return;
+        }
+        // Normalize to 'id' for storage consistency
+        const normalizedProject = { ...project, id: id };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(normalizedProject));
+        window.dispatchEvent(new CustomEvent('workspaceChange', { detail: normalizedProject }));
+    },
+    clearActiveProject() {
+        localStorage.removeItem(this.STORAGE_KEY);
+        window.dispatchEvent(new CustomEvent('workspaceChange', { detail: null }));
+    },
+    hasActiveProject() { return !!this.getActiveProject(); }
+};
+window.Workspace = Workspace;
+
 // Run session check immediately on every page that includes layout.js
 Auth.checkSession();
 
@@ -40,11 +70,6 @@ function renderLayout(activePage) {
         // Admin/Manager/Others see everything
         sidebarItems = `
             <div class="sidebar-section-label">Engineering (PM)</div>
-            <li>
-                <a href="/list_project" class="${activePage === 'list_project' ? 'active' : ''}">
-                    <i class="fas fa-folder"></i> <span>Projects</span>
-                </a>
-            </li>
             <li>
                 <a href="/list_draft" class="${activePage === 'list_draft' ? 'active' : ''}">
                     <i class="fas fa-list"></i> <span>Draft SLD</span>
@@ -101,16 +126,43 @@ function renderLayout(activePage) {
         `;
     }
 
+    // 3. Workspace Context Indicator (NEW)
+    const renderWorkspaceIndicator = (project) => {
+        if (project) {
+            return `<div class="active-workspace-indicator mt-auto mx-3 mb-3 p-3 rounded" style="background: rgba(255,0,60,0.1); border-left: 4px solid var(--neon-red);">
+                <div class="small opacity-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Active Workspace</div>
+                <div class="fw-bold text-truncate" title="${project.project_name}">${project.project_name}</div>
+                <div class="d-flex gap-2 mt-2">
+                    <a href="/home" class="btn btn-xs btn-outline-danger py-0 px-2 font-monospace" style="font-size: 0.65rem;">
+                        <i class="fas fa-exchange-alt me-1"></i> SWITCH
+                    </a>
+                    <button onclick="Workspace.clearActiveProject(); window.location.href='/home';" class="btn btn-xs btn-link text-muted p-0 border-0 text-decoration-none" style="font-size: 0.65rem;">
+                        <i class="fas fa-times-circle me-1"></i> EXIT
+                    </button>
+                </div>
+               </div>`;
+        }
+        return `<div class="active-workspace-indicator mt-auto mx-3 mb-3 p-3 rounded text-center" style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2);">
+            <div class="small opacity-50 mb-2">No active project</div>
+            <a href="/" class="btn btn-sm btn-outline-light w-100" style="font-size: 0.75rem;">SELECT PROJECT</a>
+           </div>`;
+    };
+
+    const activeProject = Workspace.getActiveProject();
+    const workspaceIndicatorHTML = `<div id="sidebar-workspace-indicator-container">${renderWorkspaceIndicator(activeProject)}</div>`;
+
     const sidebarHTML = `
-    <nav id="sidebar">
+    <nav id="sidebar" class="d-flex flex-column h-100">
         <div class="sidebar-header">
             <img src="img/estimacore.png" alt="Logo" class="sidebar-logo">
             <h3>ESTIMACORE</h3>
         </div>
 
-        <ul class="list-unstyled components">
+        <ul class="list-unstyled components flex-grow-1">
             ${sidebarItems}
         </ul>
+
+        ${workspaceIndicatorHTML}
     </nav>
     <!-- Overlay -->
     <div class="overlay"></div>
@@ -118,7 +170,25 @@ function renderLayout(activePage) {
 
     document.getElementById('sidebar-container').innerHTML = sidebarHTML;
 
-    // 2. Inject Navbar into the beginning of #content
+    // 4. Workspace Protection (NEW)
+
+    const engineeringTools = ['price_finder', 'upload_sld', 'table_penawaran', 'BoQ'];
+    const isEngineeringPage = engineeringTools.includes(activePage);
+
+    if (isEngineeringPage && !activeProject) {
+        console.warn(`[Workspace] Access to ${activePage} blocked: No active project.`);
+        // Use a flag to prevent multiple alerts if renderLayout is called twice
+        if (window._workspaceAlertActive) return;
+        window._workspaceAlertActive = true;
+
+        setTimeout(async () => {
+            await showAlert('Workspace Required', 'Please select a project from the dashboard first.', 'warning');
+            window._workspaceAlertActive = false;
+            window.location.href = '/home'; // Explicitly go to /home instead of /
+        }, 100);
+    }
+
+    // 5. Inject Navbar into the beginning of #content
     const navbarHTML = `
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container-fluid">
@@ -130,7 +200,10 @@ function renderLayout(activePage) {
             </button>
 
             <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-                <ul class="navbar-nav mb-2 mb-lg-0">
+                <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
+                    <div id="navbar-project-context-container" class="d-flex align-items-center">
+                        ${renderNavbarProjectBadge(activeProject)}
+                    </div>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-shield fa-lg me-1"></i> ${user.email || 'Admin User'} <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">${user.role || ''}</span>
@@ -149,10 +222,36 @@ function renderLayout(activePage) {
     const contentDiv = document.getElementById('content');
     contentDiv.insertAdjacentHTML('afterbegin', navbarHTML);
 
-
-
-    // 3. Initialize Interactive Logic (Toggle, etc.)
+    // 6. Initialize Interactive Logic (Toggle, etc.)
     initializeLayoutInteractions();
+
+    // Listen for Workspace Changes (Dynamic UI Sync)
+    window.addEventListener('workspaceChange', function (e) {
+        const newProject = e.detail;
+
+        // Update Sidebar
+        const sidebarContainer = document.getElementById('sidebar-workspace-indicator-container');
+        if (sidebarContainer) {
+            sidebarContainer.innerHTML = renderWorkspaceIndicator(newProject);
+        }
+
+        // Update Navbar
+        const navbarContainer = document.getElementById('navbar-project-context-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = renderNavbarProjectBadge(newProject);
+        }
+    });
+}
+
+// Helper for Navbar Project Badge
+function renderNavbarProjectBadge(project) {
+    if (!project) return '';
+    return `
+        <li class="nav-item me-2">
+            <span class="text-muted d-none d-sm-inline small me-1">Project:</span>
+            <span class="badge bg-dark border border-secondary fw-bold text-truncate" style="max-width: 120px;" title="${project.project_name}">${project.project_name}</span>
+        </li>
+    `;
 }
 
 function initializeLayoutInteractions() {
@@ -160,6 +259,8 @@ function initializeLayoutInteractions() {
     if (logoutLink) {
         logoutLink.addEventListener('click', function (e) {
             e.preventDefault();
+            // Clear workspace too on logout
+            if (window.Workspace) Workspace.clearActiveProject();
             Auth.logout();
         });
     }
@@ -168,23 +269,39 @@ function initializeLayoutInteractions() {
     const sidebarCollapse = document.getElementById('sidebarCollapse');
     const sidebar = document.getElementById('sidebar');
     const content = document.getElementById('content');
+    const overlay = document.querySelector('.overlay');
 
-    // 1. Check LocalStorage on init
-    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-    if (isCollapsed) {
-        sidebar.classList.add('collapsed');
-        content.classList.add('collapsed');
+    // 1. Check LocalStorage on init (Desktop only)
+    if (window.innerWidth > 768) {
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            content.classList.add('collapsed');
+        }
     }
 
     // 2. Toggle Event
     if (sidebarCollapse) {
         sidebarCollapse.addEventListener('click', function () {
-            sidebar.classList.toggle('collapsed');
-            content.classList.toggle('collapsed');
+            if (window.innerWidth <= 768) {
+                // Mobile behavior
+                sidebar.classList.toggle('active');
+                if (overlay) overlay.classList.toggle('active');
+            } else {
+                // Desktop behavior
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+                // Save state
+                localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+            }
+        });
+    }
 
-            // Save state
-            const currentState = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebar_collapsed', currentState);
+    // 3. Close sidebar on overlay click (Mobile)
+    if (overlay) {
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
         });
     }
 }

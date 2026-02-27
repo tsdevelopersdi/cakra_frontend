@@ -64,10 +64,10 @@
                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                             <h5 class="mb-0 text-success"><i class="fas fa-table me-2"></i>Extraction Results</h5>
                             <div class="d-flex gap-2 align-items-center">
-                                <select id="project-select" class="form-select form-select-sm" style="width: 180px;">
-                                    <option value="">Choose Project...</option>
-                                    <!-- Options populated via API -->
-                                </select>
+                                <!-- Project select removed: Auto-associated via Workspace -->
+                                <div id="active-project-info" class="badge bg-dark border border-secondary p-2 d-none">
+                                    <i class="fas fa-folder me-1"></i> <span id="span-project-name"></span>
+                                </div>
                                 <input type="text" id="document-title" class="form-control form-control-sm"
                                     placeholder="Document Title..." style="width: 180px;">
                                 <button class="btn btn-sm btn-save-data d-none" id="btn-save-data">
@@ -139,8 +139,15 @@
             // Initialize Layout with active page
             renderLayout('upload_sld');
 
-            // Fetch Projects
-            fetchProjects();
+            // Fetch Projects (Deprecated in Workspace mode, but keep badge update)
+            function updateProjectBadge() {
+                const activeProject = Workspace.getActiveProject();
+                if (activeProject) {
+                    document.getElementById('span-project-name').textContent = activeProject.project_name;
+                    document.getElementById('active-project-info').classList.remove('d-none');
+                }
+            }
+            updateProjectBadge();
 
             function resetUploadPage() {
                 // 1. Reset forms
@@ -172,37 +179,7 @@
                 };
             }
 
-            async function fetchProjects() {
-                const projectSelect = document.getElementById('project-select');
-                try {
-                    // Switch to GET to match list_project.html pattern
-                    const response = await fetch(API_CONFIG.endpoints.projects, {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: authHeaders()
-                    });
-
-                    if (response.ok) {
-                        const projects = await response.json();
-                        // Clear existing except placeholder
-                        projectSelect.innerHTML = '<option value="">Choose Project...</option>';
-                        if (Array.isArray(projects)) {
-                            projects.forEach(p => {
-                                const option = document.createElement('option');
-                                // option.value = p.id; -> this is if i want use ID
-                                option.value = p.project_name; // -> this is if i want use project name
-                                // Handle both p.name and p.project_name
-                                option.textContent = p.project_name;
-                                projectSelect.appendChild(option);
-                            });
-                        }
-                    } else {
-                        console.error('Failed to fetch projects:', response.statusText);
-                    }
-                } catch (error) {
-                    console.error('Error fetching projects:', error);
-                }
-            }
+            // Deprecated fetchProjects
 
             // Image Preview Functionality
             const sldInput = document.getElementById('sldImage');
@@ -342,11 +319,12 @@
                     const rows = tbody.querySelectorAll('tr');
                     const itemsToSave = [];
                     const docTitle = document.getElementById('document-title').value.trim();
-                    const projectId = document.getElementById('project-select').value;
+                    const activeProject = Workspace.getActiveProject();
+                    const projectName = activeProject ? activeProject.project_name : null;
 
-                    if (!projectId) {
-                        await showAlert('Warning', 'Please choose a Project before saving.', 'warning');
-                        document.getElementById('project-select').focus();
+                    if (!projectName) {
+                        await showAlert('Warning', 'No active project found. Returning to dashboard.', 'warning');
+                        window.location.href = '/';
                         return;
                     }
 
@@ -388,7 +366,7 @@
                             credentials: 'include',
                             headers: authHeaders(),
                             body: JSON.stringify({
-                                projectId: projectId,
+                                projectId: projectName, // Backend uses 'projectId' key for the name in some contexts
                                 documentTitle: docTitle,
                                 items: itemsToSave
                             })

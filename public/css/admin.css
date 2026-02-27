@@ -36,6 +36,22 @@ body {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     border-right: 1px solid rgba(255, 0, 60, 0.2);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom Scrollbar for Sidebar */
+#sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background: var(--neon-red);
+    border-radius: 10px;
 }
 
 #sidebar .sidebar-header {
@@ -133,6 +149,12 @@ body {
 
 #sidebar.collapsed .sidebar-header h3,
 #sidebar.collapsed .sidebar-logo {
+    display: none;
+}
+
+#sidebar.collapsed .sidebar-section-label,
+#sidebar.collapsed .active-workspace-indicator,
+#sidebar.collapsed p {
     display: none;
 }
 
@@ -254,6 +276,22 @@ body {
 
 /* Responsive Styles */
 @media (max-width: 768px) {
+    #main-content {
+        padding: 1rem !important;
+    }
+
+    .card-body {
+        padding: 1.25rem !important;
+    }
+
+    .workspace-header {
+        padding: 25px !important;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+    }
+
     #sidebar {
         margin-left: calc(var(--sidebar-width) * -1);
     }
@@ -270,6 +308,11 @@ body {
 
     #sidebarCollapse span {
         display: none;
+    }
+
+    #content.collapsed {
+        width: 100%;
+        margin-left: 0;
     }
 }
 

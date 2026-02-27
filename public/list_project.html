@@ -197,9 +197,12 @@
                             <span class="badge ${getStatusBadgeClass(p.status)}">${p.status}</span>
                         </td>
                         <td>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary btn-edit" 
-                                    data-id="${projectId}" 
+                            <div class="d-flex justify-content-center gap-1">
+                                <button class="btn btn-sm btn-outline-success btn-enter-ws" data-id="${projectId}" title="Enter Workspace">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary btn-edit"
+                                    data-id="${projectId}"
                                     data-name="${p.name || p.project_name}"
                                     data-client="${p.client || ''}"
                                     data-start="${p.start_date || p.start || ''}"
@@ -215,6 +218,20 @@
                 `}).join('');
 
                 // Add event listeners to buttons
+                document.querySelectorAll('.btn-enter-ws').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const id = this.getAttribute('data-id');
+                        const row = this.closest('tr');
+                        const projectName = row.querySelector('.fw-bold').textContent;
+
+                        Workspace.setActiveProject({
+                            id: id,
+                            project_name: projectName
+                        });
+                        window.location.href = '/home'; // Go to dashboard to see active status or price_finder
+                    });
+                });
+
                 document.querySelectorAll('.btn-edit').forEach(btn => {
                     btn.addEventListener('click', function () {
                         const id = this.getAttribute('data-id');

@@ -12,7 +12,7 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "upload_sld.html"));
+  res.sendFile(path.join(__dirname, "public", "home.html"));
 });
 
 app.get("/pricelist", (req, res) => {
@@ -24,7 +24,7 @@ app.get("/box_finder", (req, res) => {
 });
 
 app.get("/home", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "upload_sld.html"));
+  res.sendFile(path.join(__dirname, "public", "home.html"));
 });
 
 app.get("/attendance_user", (req, res) => {

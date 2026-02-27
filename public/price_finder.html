@@ -318,8 +318,14 @@
 
             async function fetchDrafts() {
                 const modalBody = document.getElementById('modal-draft-tbody');
+                const activeProject = Workspace.getActiveProject();
+
+                if (!activeProject) return;
+
                 try {
-                    const response = await fetch(API_CONFIG.endpoints.listDrafts, {
+                    // Filter drafts by current project
+                    const url = `${API_CONFIG.endpoints.listDrafts}?projectId=${activeProject.id}`;
+                    const response = await fetch(url, {
                         method: 'GET',
                         credentials: 'include',
                         headers: authHeaders()
