@@ -50,7 +50,7 @@
                                 </div>
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-primary" id="btn-submit-upload">
-                                        <i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n
+                                        <i class="fas fa-cloud-upload-alt me-2"></i>Process
                                     </button>
                                 </div>
                             </form>
@@ -87,7 +87,7 @@
                                 <div class="spinner-border text-primary mb-3" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                <p class="text-muted">Processing image with n8n...</p>
+                                <p class="text-muted">Processing image...</p>
                             </div>
 
                             <!-- Result Table -->
@@ -165,11 +165,10 @@
                 document.getElementById('result-tbody').innerHTML = '';
             }
 
-            // Helper: build auth headers
+            // Helper: build headers
             function authHeaders() {
                 return {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                    'Content-Type': 'application/json'
                 };
             }
 
@@ -179,6 +178,7 @@
                     // Switch to GET to match list_project.html pattern
                     const response = await fetch(API_CONFIG.endpoints.projects, {
                         method: 'GET',
+                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -252,7 +252,7 @@
                 if (!file) {
                     showAlert('Warning', 'Please select a file first.', 'warning').then(() => {
                         btnSubmit.disabled = false;
-                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n';
+                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process';
                     });
                     return;
                 }
@@ -302,14 +302,14 @@
                         saveBtn.classList.remove('d-none');
                     })
                     .catch(error => {
-                        console.error('Error uploading to n8n:', error);
+                        console.error('Error uploading:', error);
                         loadingState.classList.add('d-none');
                         emptyState.classList.remove('d-none');
                         showAlert('Error', 'Failed to process image: ' + error.message, 'error');
                     })
                     .finally(() => {
                         btnSubmit.disabled = false;
-                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process to n8n';
+                        btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Process';
                     });
             });
 
@@ -385,9 +385,9 @@
                     try {
                         const response = await fetch(API_CONFIG.endpoints.saveSld, {
                             method: 'POST',
+                            credentials: 'include',
                             headers: authHeaders(),
                             body: JSON.stringify({
-                                // refreshToken: localStorage.getItem('refreshToken'), // Removed from body
                                 projectId: projectId,
                                 documentTitle: docTitle,
                                 items: itemsToSave

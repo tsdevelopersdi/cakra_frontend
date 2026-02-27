@@ -307,9 +307,8 @@
             // Fetch Invoice Details
             async function fetchInvoiceData(id) {
                 try {
-                    const token = localStorage.getItem('refreshToken');
                     const response = await fetch(`${API_CONFIG.endpoints.invoiceDetail}/${id}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'include'
                     });
 
                     if (!response.ok) throw new Error('Failed to fetch invoice details');
@@ -361,17 +360,19 @@
             // Fetch Invoice Image
             async function fetchInvoiceImage(filename) {
                 try {
-                    const token = localStorage.getItem('refreshToken');
                     const imgEl = document.getElementById('invoice-image');
+                    const encodedFilename = encodeURIComponent(filename);
 
                     // Fetch image using the filename path parameter
-                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${filename}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${encodedFilename}`, {
+                        credentials: 'include'
                     });
 
                     if (response.ok) {
                         const blob = await response.blob();
                         imgEl.src = URL.createObjectURL(blob);
+                    } else {
+                        console.warn(`Invoice image not found: ${filename}`);
                     }
                 } catch (error) {
                     console.error('Error fetching image:', error);
@@ -401,11 +402,10 @@
                         // Note: If you have more fields like category/date, they should be added here
                     }));
 
-                    const token = localStorage.getItem('refreshToken');
                     const response = await fetch(API_CONFIG.endpoints.saveInvoice, {
                         method: 'POST',
+                        credentials: 'include',
                         headers: {
-                            'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
@@ -432,11 +432,10 @@
                     .then(async (confirmed) => {
                         if (confirmed) {
                             try {
-                                const token = localStorage.getItem('refreshToken');
                                 const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                                     method: 'POST',
+                                    credentials: 'include',
                                     headers: {
-                                        'Authorization': `Bearer ${token}`,
                                         'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({ id: invoiceId, status: 'rejected' })
@@ -457,11 +456,10 @@
             // Handle Forward Button
             document.getElementById('forward-btn').addEventListener('click', async function () {
                 try {
-                    const token = localStorage.getItem('refreshToken');
                     const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                         method: 'POST',
+                        credentials: 'include',
                         headers: {
-                            'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ id: invoiceId, status: 'on_forward' })
@@ -483,11 +481,10 @@
                     .then(async (confirmed) => {
                         if (confirmed) {
                             try {
-                                const token = localStorage.getItem('refreshToken');
                                 const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                                     method: 'POST',
+                                    credentials: 'include',
                                     headers: {
-                                        'Authorization': `Bearer ${token}`,
                                         'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({ id: invoiceId, status: 'accepted' })

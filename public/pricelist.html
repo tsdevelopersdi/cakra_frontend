@@ -80,7 +80,6 @@
                     const searchTerm = data.search ? data.search.value : '';
 
                     try {
-                        const token = localStorage.getItem('refreshToken');
                         const url = new URL(API_CONFIG.endpoints.pricelist);
                         url.searchParams.append('page', page);
                         url.searchParams.append('limit', limit);
@@ -92,10 +91,7 @@
 
                         const response = await fetch(url.toString(), {
                             method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            }
+                            credentials: 'include'
                         });
 
                         if (!response.ok) throw new Error('Failed to fetch pricelist');

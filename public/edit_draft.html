@@ -116,11 +116,10 @@
                 return;
             }
 
-            // Helper: build auth headers
+            // Helper: build headers
             function authHeaders() {
                 return {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                    'Content-Type': 'application/json'
                 };
             }
 
@@ -131,6 +130,7 @@
                     // This matches price_finder.html's "load draft" behavior where metadata comes from the list
                     const listResponse = await fetch(API_CONFIG.endpoints.listDrafts, {
                         method: 'GET',
+                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -145,6 +145,7 @@
                     // 2. Fetch the detail to get the actual items
                     const detailResponse = await fetch(`${API_CONFIG.endpoints.listDrafts}/${draftId}`, {
                         method: 'GET',
+                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -285,6 +286,7 @@
                 try {
                     const response = await fetch(API_CONFIG.endpoints.update_sld, {
                         method: 'POST',
+                        credentials: 'include',
                         headers: authHeaders(),
                         body: JSON.stringify({
                             projectId: projectName,

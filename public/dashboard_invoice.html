@@ -201,9 +201,8 @@
     <script>
         async function fetchSummary() {
             try {
-                const token = localStorage.getItem('refreshToken');
                 const response = await fetch(API_CONFIG.endpoints.dashboardInvoice, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
 
                 if (!response.ok) throw new Error('Failed to fetch summary');

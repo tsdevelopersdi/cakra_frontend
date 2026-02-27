@@ -2,6 +2,18 @@
 Auth.checkSession();
 
 function renderLayout(activePage) {
+    // Set static title and favicon
+    document.title = "ESTIMACORE";
+
+    // Inject or update favicon
+    let favicon = document.querySelector('link[rel="icon"]');
+    if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+    }
+    favicon.href = 'img/estimacore.png';
+
     const user = Auth.getUser();
     const role = Auth.getUserRole();
 
@@ -9,27 +21,37 @@ function renderLayout(activePage) {
     let sidebarItems = '';
 
     if (role === 'user') {
-        // User role only sees Invoice Upload
         sidebarItems = `
+            <div class="sidebar-section-label">Finance</div>
             <li>
-                <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
-                    <i class="fas fa-file-invoice-dollar"></i> <span>Invoice Upload</span>
+                <a href="#invoiceSubmenu" data-bs-toggle="collapse" aria-expanded="${['invoice_upload', 'list_invoice'].includes(activePage) ? 'true' : 'false'}" class="dropdown-toggle ${['invoice_upload', 'list_invoice'].includes(activePage) ? '' : 'collapsed'}">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Struck</span>
                 </a>
+                <ul class="collapse list-unstyled ${['invoice_upload', 'list_invoice'].includes(activePage) ? 'show' : ''}" id="invoiceSubmenu">
+                    <li>
+                        <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
+                             <i class="fas fa-upload me-2" style="font-size: 0.8rem;"></i> Upload
+                        </a>
+                    </li>
+                </ul>
             </li>
         `;
     } else {
         // Admin/Manager/Others see everything
         sidebarItems = `
+            <div class="sidebar-section-label">Engineering (PM)</div>
             <li>
                 <a href="/list_project" class="${activePage === 'list_project' ? 'active' : ''}">
-                    <i class="fas fa-person"></i> <span>List Project</span>
+                    <i class="fas fa-folder"></i> <span>Projects</span>
                 </a>
             </li>
             <li>
                 <a href="/list_draft" class="${activePage === 'list_draft' ? 'active' : ''}">
-                    <i class="fas fa-list"></i> <span>List Draft SLD</span>
+                    <i class="fas fa-list"></i> <span>Draft SLD</span>
                 </a>
             </li>
+
+            <div class="sidebar-section-label">Engineering (Tools)</div>
             <li>
                 <a href="/price_finder" class="${activePage === 'price_finder' ? 'active' : ''}">
                     <i class="fas fa-dollar"></i> <span>Price Finder</span>
@@ -42,9 +64,11 @@ function renderLayout(activePage) {
             </li>
             <li>
                 <a href="/table_penawaran" class="${activePage === 'table_penawaran' ? 'active' : ''}">
-                    <i class="fas fa-file-invoice"></i> <span>Table Penawaran</span>
+                    <i class="fas fa-file-invoice"></i> <span>Bill of Quantity</span>
                 </a>
             </li>
+
+            <div class="sidebar-section-label">Engineering (Database)</div>
             <li>
                 <a href="/pricelist" class="${activePage === 'pricelist' ? 'active' : ''}">
                     <i class="fas fa-table"></i> <span>Pricelist</span>
@@ -52,18 +76,27 @@ function renderLayout(activePage) {
             </li>
             <li>
                 <a href="/box_list" class="${activePage === 'box_list' ? 'active' : ''}">
-                    <i class="fas fa-box"></i> <span>Box List</span>
+                    <i class="fas fa-box"></i> <span>Boxes</span>
                 </a>
             </li>
+
+            <div class="sidebar-section-label">Finance</div>
             <li>
-                <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
-                    <i class="fas fa-file-invoice-dollar"></i> <span>Invoice Upload</span>
+                <a href="#invoiceSubmenu" data-bs-toggle="collapse" aria-expanded="${['invoice_upload', 'list_invoice', 'invoice_detail'].includes(activePage) ? 'true' : 'false'}" class="dropdown-toggle ${['invoice_upload', 'list_invoice', 'invoice_detail'].includes(activePage) ? '' : 'collapsed'}">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Struck</span>
                 </a>
-            </li>
-            <li>
-                <a href="/list_invoice" class="${activePage === 'list_invoice' ? 'active' : ''}">
-                    <i class="fas fa-file-invoice"></i> <span>List Invoice</span>
-                </a>
+                <ul class="collapse list-unstyled ${['invoice_upload', 'list_invoice', 'invoice_detail'].includes(activePage) ? 'show' : ''}" id="invoiceSubmenu">
+                    <li>
+                        <a href="/invoice_upload" class="${activePage === 'invoice_upload' ? 'active' : ''}">
+                             <i class="fas fa-upload me-2" style="font-size: 0.8rem;"></i> Upload
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/list_invoice" class="${activePage === 'list_invoice' ? 'active' : ''}">
+                             <i class="fas fa-list me-2" style="font-size: 0.8rem;"></i> List
+                        </a>
+                    </li>
+                </ul>
             </li>
         `;
     }
@@ -71,7 +104,8 @@ function renderLayout(activePage) {
     const sidebarHTML = `
     <nav id="sidebar">
         <div class="sidebar-header">
-            <h3>CAKRA AI</h3>
+            <img src="img/estimacore.png" alt="Logo" class="sidebar-logo">
+            <h3>ESTIMACORE</h3>
         </div>
 
         <ul class="list-unstyled components">

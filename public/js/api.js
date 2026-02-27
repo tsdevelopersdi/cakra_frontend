@@ -5,19 +5,19 @@
 
 // const API_BASE_URL = 'http://10.10.28.121:3737';
 // const API_BASE_URL = 'http://10.28.24.135:3737';
-const API_BASE_URL = 'http://localhost:16753';
+const API_BASE_URL = 'http://10.10.28.76:16753';
 const N8N_URL = 'https://flow.ts-ai.solusidaya.id/webhook/cb75c3a7-b203-42ab-ad04-c87fce6a9e1a';
 // const API_BASE_URL = 'http://10.28.24.173:3737';
 // const API_PHOTOS = 'http://10.28.20.62:1998';
 const API_PHOTOS = 'http://10.28.20.62:3737';
-const N8N_URL_PRICE_FINDER = 'https://flow.ts-ai.solusidaya.id/webhook/789fae4f-caf6-41ef-8a8c-fec67aad393f';
+const N8N_URL_PRICE_FINDER = 'https://flow.ts-ai.solusidaya.id/webhook-test/789fae4f-caf6-41ef-8a8c-fec67aad393f';
 const N8N_URL_BOX_FINDER = 'https://flow.ts-ai.solusidaya.id/webhook/296f85dc-5363-4ada-acd3-6aaa1a9d84ca';
 const N8N_URL_INVOICE = 'https://flow.ts-ai.solusidaya.id/webhook/6c4cee07-3dd6-4b7c-976e-30371e904733'; // Placeholder
 
 const API_CONFIG = {
     baseUrl: API_BASE_URL,
     endpoints: {
-        login: `${API_BASE_URL}/login`,
+        login: `${API_BASE_URL}/auth/login`,
         recentAttendance: `${API_BASE_URL}/recent`,
         userAttendance: `${API_BASE_URL}/user-attendance`,
         photos: `${API_PHOTOS}/photos`,

@@ -118,22 +118,29 @@
 
             let editingProjectId = null;
 
-            // Helper: build auth headers
+            // Helper: default fetch options with cookie credentials
             function authHeaders() {
                 return {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
+                    'Content-Type': 'application/json'
                 };
             }
 
             function formatDate(dateStr) {
                 if (!dateStr) return '-';
-                const d = new Date(dateStr);
-                if (isNaN(d)) return '-';
-                const day = String(d.getDate()).padStart(2, '0');
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const year = d.getFullYear();
-                return `${day}/${month}/${year}`;
+                try {
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return '-';
+
+                    return d.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch (e) {
+                    return '-';
+                }
             }
 
             function formatRupiah(amount) {
@@ -145,6 +152,7 @@
                 try {
                     const response = await fetch(API_CONFIG.endpoints.projects, {
                         method: 'GET',
+                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -262,6 +270,7 @@
                 try {
                     const response = await fetch(`${API_CONFIG.endpoints.projects}/${id}`, {
                         method: 'DELETE',
+                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -311,6 +320,7 @@
                 try {
                     const response = await fetch(url, {
                         method: method,
+                        credentials: 'include',
                         headers: authHeaders(),
                         body: JSON.stringify(projectData)
                     });

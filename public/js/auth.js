@@ -21,10 +21,15 @@ const Auth = {
     },
 
     logout() {
+        // Call backend to clear httpOnly cookies server-side
+        fetch(API_CONFIG.endpoints.login.replace('/auth/login', '/logout'), {
+            method: 'DELETE',
+            credentials: 'include',
+        }).catch(() => { }); // fail silently, we still clear local state
+
         localStorage.removeItem('session_active');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        document.cookie = 'refreshToken=; Max-Age=0; path=/;';
         window.location.href = '/login';
     },
 

@@ -169,9 +169,7 @@
             async function fetchProjects() {
                 try {
                     const response = await fetch(API_CONFIG.endpoints.projects, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
-                        }
+                        credentials: 'include'
                     });
 
                     if (response.ok) {
@@ -231,9 +229,7 @@
                 try {
                     // Use the new direct endpoint: draftPenawaran/{projectId}
                     const response = await fetch(`${API_CONFIG.endpoints.draftPenawaran}/${projectId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('refreshToken')}`
-                        }
+                        credentials: 'include'
                     });
 
                     if (!response.ok) {

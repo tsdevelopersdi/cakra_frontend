@@ -66,26 +66,18 @@
         }
 
         .login-header .icon-box {
-            width: 70px;
-            height: 70px;
-            background: rgba(255, 0, 60, 0.1);
-            border: none;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
             margin-bottom: 20px;
-            color: var(--neon-red);
-            font-size: 28px;
-            box-shadow: 0 0 20px rgba(255, 0, 60, 0.2);
-            transform: rotate(45deg);
+            background: transparent;
+            box-shadow: none;
+            transform: none;
         }
 
         .login-header .icon-box img {
-            width: 60px;
-            height: 60px;
+            width: 240px;
+            height: 240px;
             object-fit: contain;
-            transform: rotate(-45deg);
+            transform: none;
         }
 
         .login-header h4 {
@@ -172,8 +164,6 @@
             <div class="icon-box">
                 <img src="img/estimacore.png" alt="Estimacore Logo">
             </div>
-            <h4 class="fw-bold">CAKRA AI</h4>
-            <p class="small">NEURAL INTERFACE ACCESS</p>
         </div>
         <div class="login-body">
             <form id="loginForm">
@@ -235,7 +225,6 @@
                     // }
                     // Success! 
                     localStorage.setItem('session_active', 'true');
-                    localStorage.setItem('refreshToken', data.refreshToken);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     window.location.href = '/';
                 } else {
@@ -266,6 +255,10 @@
 </body>
 
 </html>
+
+
+
+
 
 
 
