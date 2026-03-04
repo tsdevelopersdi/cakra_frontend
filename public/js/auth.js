@@ -28,7 +28,6 @@ const Auth = {
         }).catch(() => { }); // fail silently, we still clear local state
 
         localStorage.removeItem('session_active');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         window.location.href = '/login';
     },
@@ -52,7 +51,7 @@ const Auth = {
         const path = window.location.pathname;
         const role = this.getUserRole();
 
-        // Strictly restrict 'user' role
+        // strictly restrict 'user' role
         if (role === 'user') {
             const allowedPages = ['/invoice_upload', '/invoice_upload.html'];
             const isAllowed = allowedPages.some(page => path.endsWith(page));
@@ -61,26 +60,50 @@ const Auth = {
                 console.error(`Access Denied: Role 'user' is restricted from ${path}`);
                 window.location.href = '/invoice_upload';
             }
+        } else if (role) {
+            // Non-user roles (Admin/Manager) should go to list_invoice instead of project dashboard
+            const dashboardPages = ['/home', '/home.html', '/dashboard', '/'];
+            const isDashboard = dashboardPages.some(page => path === page || path.endsWith(page));
+
+            if (isDashboard) {
+                window.location.href = '/list_invoice';
+            }
         }
     },
 
     // 4. UI Restriction Helpers
-    restrictInvoiceDetails(ui) {
+    restrictInvoiceDetails(ui, status = null) {
         const role = this.getUserRole();
 
-        // Hide all buttons by default (assumes they have d-none or similar)
+        // 1. Hide all buttons by default
         if (ui.rejectBtn) ui.rejectBtn.classList.add('d-none');
         if (ui.forwardBtn) ui.forwardBtn.classList.add('d-none');
         if (ui.updateBtn) ui.updateBtn.classList.add('d-none');
         if (ui.approveBtn) ui.approveBtn.classList.add('d-none');
+        if (ui.closeBtn) ui.closeBtn.classList.add('d-none');
 
+        // 2. Access Control Logic (Role + Status)
         if (role === 'admin' || role === 'super admin') {
             if (ui.rejectBtn) ui.rejectBtn.classList.remove('d-none');
             if (ui.forwardBtn) ui.forwardBtn.classList.remove('d-none');
             if (ui.updateBtn) ui.updateBtn.classList.remove('d-none');
+
+            // Only show close button if invoice is already accepted
+            if (ui.closeBtn && (status === 'accepted' || status === 'approved')) {
+                ui.closeBtn.classList.remove('d-none');
+            }
         } else if (role === 'manager') {
-            if (ui.approveBtn) ui.approveBtn.classList.remove('d-none');
+            // Only show approve button if status is 'on_forward'
+            if (ui.approveBtn && status === 'on_forward') {
+                ui.approveBtn.classList.remove('d-none');
+            }
+
             if (ui.rejectBtn) ui.rejectBtn.classList.remove('d-none');
+
+            // Only show close button if invoice is already accepted
+            if (ui.closeBtn && (status === 'accepted' || status === 'approved')) {
+                ui.closeBtn.classList.remove('d-none');
+            }
         }
     }
 };

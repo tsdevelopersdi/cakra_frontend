@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Dashboard - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -173,6 +174,20 @@
                     </div>
                 </div>
 
+                <!-- 5. Closed -->
+                <div class="col-md-6 col-lg-4 col-xl">
+                    <div class="card stat-card card-closed h-100 p-3 shadow-sm"
+                        onclick="window.location.href='/list_invoice?status=closed'">
+                        <div class="card-body">
+                            <div class="stat-icon icon-closed">
+                                <i class="fas fa-archive"></i>
+                            </div>
+                            <div class="stat-label">Closed</div>
+                            <div class="stat-value" id="stat-closed">0</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 5. Total Invoices -->
                 <div class="col-md-6 col-lg-4 col-xl">
                     <div class="card stat-card card-total h-100 p-3 shadow-sm"
@@ -196,12 +211,13 @@
     <!-- Core JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
 
     <script>
         async function fetchSummary() {
             try {
-                const response = await fetch(API_CONFIG.endpoints.dashboardInvoice, {
+                const response = await apiFetch(API_CONFIG.endpoints.dashboardInvoice, {
                     credentials: 'include'
                 });
 
@@ -214,6 +230,7 @@
                 animateValue("stat-forward", data.on_forward || 0);
                 animateValue("stat-rejected", data.rejected || 0);
                 animateValue("stat-accepted", data.accepted || 0);
+                animateValue("stat-closed", data.closed || 0);
                 animateValue("stat-total", data.total || 0);
 
                 document.getElementById('last-update').innerText = new Date().toLocaleTimeString('id-ID');

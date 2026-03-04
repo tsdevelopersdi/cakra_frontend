@@ -1,15 +1,7 @@
-:root {
-    /* Sidebar Design System (Approved Red Futuristic) */
-    --neon-red: #ff003c;
-    --sidebar-bg: rgba(10, 10, 10, 1);
-    --sidebar-width: 260px;
-    --sidebar-width-collapsed: 80px;
-    --topbar-height: 65px;
+@import 'theme.css';
 
-    /* Content Design System (Refined Grey/White Futuristic) */
-    --body-bg: #f5f7f9;
-    --content-card-bg: #ffffff;
-    --content-border: rgba(0, 0, 0, 0.08);
+:root {
+    /* Variables now inherited from theme.css */
     --text-primary: #2d3436;
     --text-secondary: #636e72;
     --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -35,7 +27,7 @@ body {
     color: #fff;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
-    border-right: 1px solid rgba(255, 0, 60, 0.2);
+    border-right: 1px solid rgba(var(--brand-color-rgb), 0.2);
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -50,7 +42,7 @@ body {
 }
 
 #sidebar::-webkit-scrollbar-thumb {
-    background: var(--neon-red);
+    background: var(--neon-blue);
     border-radius: 10px;
 }
 
@@ -60,8 +52,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 0, 60, 0.05);
-    border-bottom: 1px solid rgba(255, 0, 60, 0.1);
+    background: rgba(var(--brand-color-rgb), 0.05);
+    border-bottom: 1px solid rgba(var(--brand-color-rgb), 0.1);
 }
 
 #sidebar .sidebar-header h3 {
@@ -69,14 +61,14 @@ body {
     font-weight: 800;
     letter-spacing: 2px;
     margin: 0;
-    color: var(--neon-red);
-    text-shadow: 0 0 10px rgba(255, 0, 60, 0.5);
+    color: var(--brand-color);
+    text-shadow: 0 0 10px rgba(var(--brand-color-rgb), 0.5);
 }
 
 #sidebar .sidebar-logo {
     height: 30px;
     margin-right: 12px;
-    filter: drop-shadow(0 0 5px rgba(255, 0, 60, 0.3));
+    filter: drop-shadow(0 0 5px rgba(var(--brand-color-rgb), 0.3));
 }
 
 #sidebar ul.components {
@@ -118,14 +110,14 @@ body {
 #sidebar ul li a:hover,
 #sidebar ul li a.active {
     color: #fff;
-    background: rgba(255, 0, 60, 0.1);
-    box-shadow: inset 3px 0 0 var(--neon-red);
+    background: rgba(var(--brand-color-rgb), 0.1);
+    box-shadow: inset 3px 0 0 var(--brand-color);
 }
 
 #sidebar ul li a:hover i,
 #sidebar ul li a.active i {
-    color: var(--neon-red);
-    filter: drop-shadow(0 0 5px var(--neon-red));
+    color: var(--brand-color);
+    filter: drop-shadow(0 0 5px var(--brand-color));
 }
 
 #sidebar ul li a.dropdown-toggle {
@@ -175,6 +167,11 @@ body {
     margin-right: 0;
 }
 
+/* Hide sub-menu items when collapsed to maintain a clean look */
+#sidebar.collapsed ul ul {
+    display: none !important;
+}
+
 /* Content Styles (New Grey/White Aesthetic) */
 #content {
     width: calc(100% - var(--sidebar-width));
@@ -204,12 +201,12 @@ body {
 }
 
 .navbar .btn-outline-danger {
-    border-color: rgba(255, 0, 60, 0.3);
-    color: var(--neon-red);
+    border-color: rgba(var(--brand-color-rgb), 0.3);
+    color: var(--brand-color);
 }
 
 .navbar .btn-outline-danger:hover {
-    background: var(--neon-red);
+    background: var(--brand-color);
     color: #fff;
 }
 
@@ -260,18 +257,18 @@ body {
 
 /* Helper Classes */
 .badge.bg-danger {
-    background-color: var(--neon-red) !important;
+    background-color: var(--brand-color) !important;
 }
 
 .btn-primary {
-    background-color: var(--neon-red);
-    border-color: var(--neon-red);
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
     font-weight: 600;
 }
 
 .btn-primary:hover {
-    background-color: #e60036;
-    border-color: #e60036;
+    background-color: var(--brand-color-hover);
+    border-color: var(--brand-color-hover);
 }
 
 /* Responsive Styles */
@@ -392,6 +389,11 @@ body {
     color: #2e7d32;
 }
 
+.card-closed {
+    background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+    color: #004d40;
+}
+
 .card-total {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -415,6 +417,11 @@ body {
 .icon-accepted {
     background-color: rgba(200, 230, 201, 0.4);
     color: #2e7d32;
+}
+
+.icon-closed {
+    background-color: rgba(178, 223, 219, 0.4);
+    color: #004d40;
 }
 
 .icon-total {

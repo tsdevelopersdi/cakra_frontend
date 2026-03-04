@@ -5,11 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - EstimaCore Workspace</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Admin CSS -->
+    <!-- Admin CSS & Theme -->
+    <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/admin.css">
     <style>
         .project-card {
@@ -22,7 +24,7 @@
         .project-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
-            border-color: var(--neon-red);
+            border-color: var(--brand-color);
         }
 
         .project-card.active-ws {
@@ -66,7 +68,7 @@
         }
 
         .btn-edit-project:hover {
-            color: var(--neon-red);
+            color: var(--brand-color);
         }
 
         .btn-delete-project:hover {
@@ -90,17 +92,17 @@
             right: -10%;
             width: 300px;
             height: 300px;
-            background: radial-gradient(circle, rgba(255, 0, 60, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, var(--brand-color-light) 0%, transparent 70%);
             border-radius: 50%;
         }
 
         .btn-create-project {
-            background: var(--neon-red);
+            background: var(--brand-color);
             border: none;
             padding: 12px 25px;
             font-weight: 700;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(255, 0, 60, 0.3);
+            box-shadow: 0 5px 15px rgba(var(--brand-color-rgb), 0.3);
         }
 
         .btn-create-project:hover {
@@ -146,7 +148,7 @@
             <div id="project-list" class="row g-4">
                 <!-- Loading State -->
                 <div class="col-12 text-center py-5" id="projects-loading">
-                    <div class="spinner-border text-danger" role="status">
+                    <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
@@ -199,6 +201,7 @@
     <!-- Layout JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -212,9 +215,8 @@
             // 1. Fetch Projects
             async function fetchProjects() {
                 try {
-                    const response = await fetch(API_CONFIG.endpoints.projects, {
+                    const response = await apiFetch(API_CONFIG.endpoints.projects, {
                         method: 'GET',
-                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json' }
                     });
 
@@ -254,7 +256,7 @@
                                 </div>
                                 <div class="card-body p-4" onclick="selectProject(${pJson})">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <div class="icon-box bg-light text-danger rounded p-2">
+                                        <div class="icon-box bg-light text-primary rounded p-2">
                                             <i class="fas fa-folder fa-2x"></i>
                                         </div>
                                         <span class="badge ${p.status === 'Planning' ? 'bg-primary' : 'bg-success'}">${p.status || 'Active'}</span>
@@ -263,7 +265,7 @@
                                     <p class="text-muted small mb-3 text-truncate"><i class="fas fa-user me-1"></i> ${p.client || p.customer || '-'}</p>
                                     <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
                                         <span class="small text-muted">${new Date(p.created_at || p.createdAt).toLocaleDateString()}</span>
-                                        <span class="text-danger fw-bold small">OPEN WORKSPACE <i class="fas fa-arrow-right ms-1"></i></span>
+                                        <span class="text-primary fw-bold small">OPEN WORKSPACE <i class="fas fa-arrow-right ms-1"></i></span>
                                     </div>
                                 </div>
                             </div>
@@ -298,9 +300,8 @@
                 if (!await showConfirm('Delete Project', 'Are you sure you want to delete this project? All associated data will be removed.')) return;
 
                 try {
-                    const response = await fetch(`${API_CONFIG.endpoints.projects}/${id}`, {
-                        method: 'DELETE',
-                        credentials: 'include'
+                    const response = await apiFetch(`${API_CONFIG.endpoints.projects}/${id}`, {
+                        method: 'DELETE'
                     });
 
                     if (response.ok) {
@@ -345,9 +346,8 @@
                 const method = editingProjectId ? 'PUT' : 'POST';
 
                 try {
-                    const response = await fetch(url, {
+                    const response = await apiFetch(url, {
                         method: method,
-                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(projectData)
                     });

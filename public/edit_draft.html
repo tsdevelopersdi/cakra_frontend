@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Draft SLD - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -100,6 +101,7 @@
     <!-- Layout JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -128,9 +130,8 @@
                 try {
                     // 1. Fetch the list to get metadata (doc title, project name)
                     // This matches price_finder.html's "load draft" behavior where metadata comes from the list
-                    const listResponse = await fetch(API_CONFIG.endpoints.listDrafts, {
+                    const listResponse = await apiFetch(API_CONFIG.endpoints.listDrafts, {
                         method: 'GET',
-                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -143,9 +144,8 @@
                     }
 
                     // 2. Fetch the detail to get the actual items
-                    const detailResponse = await fetch(`${API_CONFIG.endpoints.listDrafts}/${draftId}`, {
+                    const detailResponse = await apiFetch(`${API_CONFIG.endpoints.listDrafts}/${draftId}`, {
                         method: 'GET',
-                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -284,12 +284,12 @@
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
 
                 try {
-                    const response = await fetch(API_CONFIG.endpoints.update_sld, {
+                    const response = await apiFetch(API_CONFIG.endpoints.update_sld, {
                         method: 'POST',
-                        credentials: 'include',
                         headers: authHeaders(),
                         body: JSON.stringify({
-                            projectId: projectName,
+                            draftId: draftId,
+                            projectId: draftMetadata.project_id || draftMetadata.projectId || null,
                             documentTitle: docTitle,
                             items: items
                         })

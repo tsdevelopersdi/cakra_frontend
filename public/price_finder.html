@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Price Finder - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -243,6 +244,7 @@
     <!-- Layout JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -324,10 +326,9 @@
 
                 try {
                     // Filter drafts by current project
-                    const url = `${API_CONFIG.endpoints.listDrafts}?projectId=${activeProject.id}`;
-                    const response = await fetch(url, {
+                    const url = `${API_CONFIG.endpoints.listDrafts}?project_id=${activeProject.id}`;
+                    const response = await apiFetch(url, {
                         method: 'GET',
-                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -368,9 +369,8 @@
                     const detailUrl = `${API_CONFIG.endpoints.listDrafts}/${draftId}`;
                     console.log(`[Sync Detail] Fetching items from: ${detailUrl}`);
 
-                    const response = await fetch(detailUrl, {
+                    const response = await apiFetch(detailUrl, {
                         method: 'GET',
-                        credentials: 'include',
                         headers: authHeaders()
                     });
 
@@ -564,14 +564,13 @@
                 btnSavePricing.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
 
                 try {
-                    console.log('[API] Saving pricing data:', { projectName, draftName, items });
+                    console.log('[API] Saving pricing data:', { draftId: draftData.id, projectName: draftData.projectName, draftName: draftName, items });
 
-                    const response = await fetch(API_CONFIG.endpoints.update_sld, {
+                    const response = await apiFetch(API_CONFIG.endpoints.update_sld, {
                         method: 'POST',
-                        credentials: 'include',
                         headers: authHeaders(),
                         body: JSON.stringify({
-                            projectId: projectName, // Keeping key as projectId/documentTitle for compatibility, but using names from draftData
+                            draftId: draftData.id,
                             documentTitle: draftName,
                             items: items
                         })
@@ -822,7 +821,7 @@
                 });
 
                 try {
-                    const response = await fetch(API_CONFIG.endpoints.saveBox, {
+                    const response = await apiFetch(API_CONFIG.endpoints.saveBox, {
                         method: 'POST',
                         credentials: 'include',
                         headers: {

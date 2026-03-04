@@ -1,0 +1,19 @@
+:root {
+    /* Brand Color System */
+    --brand-color: #0070ff;
+    --brand-color-hover: #0056b3;
+    --brand-color-rgb: 0, 112, 255;
+    --brand-color-light: rgba(var(--brand-color-rgb), 0.1);
+    --brand-color-glow: 0 0 10px rgba(var(--brand-color-rgb), 0.5);
+
+    /* Layout System */
+    --sidebar-bg: #0a0a0a;
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 80px;
+    --topbar-height: 65px;
+
+    /* Global Backgrounds */
+    --body-bg: #f5f7f9;
+    --content-card-bg: #ffffff;
+    --content-border: rgba(0, 0, 0, 0.08);
+}

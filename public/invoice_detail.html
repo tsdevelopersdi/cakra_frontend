@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Detail - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -237,6 +238,9 @@
                                 <button class="btn btn-success px-4 d-none" id="approve-btn">
                                     <i class="fas fa-save me-2"></i> Approve
                                 </button>
+                                <button class="btn btn-dark px-4 d-none" id="close-btn">
+                                    <i class="fas fa-archive me-2"></i> Close Invoice
+                                </button>
 
                             </div>
                         </div>
@@ -253,6 +257,7 @@
     <!-- Core JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
 
     <script>
@@ -262,7 +267,8 @@
                 rejectBtn: document.getElementById('reject-btn'),
                 forwardBtn: document.getElementById('forward-btn'),
                 updateBtn: document.getElementById('update-btn'),
-                approveBtn: document.getElementById('approve-btn')
+                approveBtn: document.getElementById('approve-btn'),
+                closeBtn: document.getElementById('close-btn')
             });
 
             // Initialize Layout
@@ -307,7 +313,7 @@
             // Fetch Invoice Details
             async function fetchInvoiceData(id) {
                 try {
-                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetail}/${id}`, {
+                    const response = await apiFetch(`${API_CONFIG.endpoints.invoiceDetail}/${id}`, {
                         credentials: 'include'
                     });
 
@@ -327,8 +333,29 @@
 
                     const statusEl = document.getElementById('detail-status');
                     statusEl.innerText = data.status || 'Unknown';
-                    const statusColors = { approved: 'bg-success', rejected: 'bg-danger', on_review: 'bg-warning' };
+                    const statusColors = {
+                        accepted: 'bg-success',
+                        approved: 'bg-success',
+                        rejected: 'bg-danger',
+                        on_review: 'bg-warning',
+                        closed: 'bg-info'
+                    };
                     statusEl.className = `badge ${statusColors[data.status] || 'bg-secondary'} status-badge`;
+
+                    // Dynamic Button Visibility based on role AND status
+                    Auth.restrictInvoiceDetails({
+                        rejectBtn: document.getElementById('reject-btn'),
+                        forwardBtn: document.getElementById('forward-btn'),
+                        updateBtn: document.getElementById('update-btn'),
+                        approveBtn: document.getElementById('approve-btn'),
+                        closeBtn: document.getElementById('close-btn')
+                    }, data.status);
+
+                    // Special case: hide everything if closed
+                    if (data.status === 'closed') {
+                        const buttons = ['reject-btn', 'forward-btn', 'update-btn', 'approve-btn', 'close-btn'];
+                        buttons.forEach(id => document.getElementById(id)?.classList.add('d-none'));
+                    }
 
                     // Fetch Image using nama_invoice filename
                     if (data.nama_invoice) {
@@ -364,7 +391,7 @@
                     const encodedFilename = encodeURIComponent(filename);
 
                     // Fetch image using the filename path parameter
-                    const response = await fetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${encodedFilename}`, {
+                    const response = await apiFetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${encodedFilename}`, {
                         credentials: 'include'
                     });
 
@@ -402,7 +429,7 @@
                         // Note: If you have more fields like category/date, they should be added here
                     }));
 
-                    const response = await fetch(API_CONFIG.endpoints.saveInvoice, {
+                    const response = await apiFetch(API_CONFIG.endpoints.saveInvoice, {
                         method: 'POST',
                         credentials: 'include',
                         headers: {
@@ -432,7 +459,7 @@
                     .then(async (confirmed) => {
                         if (confirmed) {
                             try {
-                                const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                                const response = await apiFetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                                     method: 'POST',
                                     credentials: 'include',
                                     headers: {
@@ -456,7 +483,7 @@
             // Handle Forward Button
             document.getElementById('forward-btn').addEventListener('click', async function () {
                 try {
-                    const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                    const response = await apiFetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                         method: 'POST',
                         credentials: 'include',
                         headers: {
@@ -481,7 +508,7 @@
                     .then(async (confirmed) => {
                         if (confirmed) {
                             try {
-                                const response = await fetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                                const response = await apiFetch(API_CONFIG.endpoints.updateInvoiceStatus, {
                                     method: 'POST',
                                     credentials: 'include',
                                     headers: {
@@ -497,6 +524,33 @@
                             } catch (error) {
                                 console.error('Error approving invoice:', error);
                                 showToast('Failed to approve invoice', 'error');
+                            }
+                        }
+                    });
+            });
+
+            // Handle Close Button
+            document.getElementById('close-btn').addEventListener('click', function () {
+                showConfirm('Close Invoice?', 'Are you sure you want to close this invoice? This usually means it has been paid or archived.', 'Yes, Close')
+                    .then(async (confirmed) => {
+                        if (confirmed) {
+                            try {
+                                const response = await apiFetch(API_CONFIG.endpoints.updateInvoiceStatus, {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ id: invoiceId, status: 'closed' })
+                                });
+
+                                if (!response.ok) throw new Error('Failed to close invoice');
+
+                                showToast('Invoice closed successfully!', 'success');
+                                setTimeout(() => window.location.href = '/list_invoice', 1500);
+                            } catch (error) {
+                                console.error('Error closing invoice:', error);
+                                showToast('Failed to close invoice', 'error');
                             }
                         }
                     });

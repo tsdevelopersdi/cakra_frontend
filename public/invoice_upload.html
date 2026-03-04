@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Upload - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -94,6 +95,7 @@
         <!-- Core JS -->
         <script src="js/api.js"></script>
         <script src="js/auth.js"></script>
+        <script src="js/apiFetch.js"></script>
         <script src="js/layout.js"></script>
 
         <script>
@@ -122,7 +124,7 @@
 
                     try {
                         const params = new URLSearchParams({ name: user.name, email: user.email });
-                        const res = await fetch(`${API_CONFIG.endpoints.invoiceList}?${params.toString()}`, {
+                        const res = await apiFetch(`${API_CONFIG.endpoints.invoiceList}?${params.toString()}`, {
                             credentials: 'include'
                         });
 
@@ -185,7 +187,7 @@
                     // Fetch images securely with token
                     document.querySelectorAll('.invoice-mini-pic').forEach(img => {
                         const filename = img.getAttribute('data-filename');
-                        fetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${filename}`, {
+                        apiFetch(`${API_CONFIG.endpoints.invoiceDetailImage}/${filename}`, {
                             credentials: 'include'
                         })
                             .then(res => res.blob())

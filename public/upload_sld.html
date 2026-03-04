@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance User - Admin Dashboard</title>
+    <title>ESTIMACORE</title>
+    <link rel="icon" type="image/png" href="img/estimacore.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
@@ -133,6 +134,7 @@
     <!-- Layout JS -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/apiFetch.js"></script>
     <script src="js/layout.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -153,7 +155,6 @@
                 // 1. Reset forms
                 document.getElementById('upload-form').reset();
                 document.getElementById('document-title').value = '';
-                document.getElementById('project-select').value = '';
 
                 // 2. Clear Image Preview
                 const preview = document.getElementById('image-preview');
@@ -320,13 +321,13 @@
                     const itemsToSave = [];
                     const docTitle = document.getElementById('document-title').value.trim();
                     const activeProject = Workspace.getActiveProject();
-                    const projectName = activeProject ? activeProject.project_name : null;
-
-                    if (!projectName) {
+                    if (!activeProject || !activeProject.id) {
                         await showAlert('Warning', 'No active project found. Returning to dashboard.', 'warning');
                         window.location.href = '/';
                         return;
                     }
+                    const projectId = activeProject.id;
+                    const projectName = activeProject.project_name;
 
                     if (!docTitle) {
                         await showAlert('Warning', 'Please enter a Document Title before saving.', 'warning');
@@ -361,12 +362,13 @@
 
                     // 3. Post to API
                     try {
-                        const response = await fetch(API_CONFIG.endpoints.saveSld, {
+                        const response = await apiFetch(API_CONFIG.endpoints.saveSld, {
                             method: 'POST',
                             credentials: 'include',
                             headers: authHeaders(),
                             body: JSON.stringify({
-                                projectId: projectName, // Backend uses 'projectId' key for the name in some contexts
+                                projectId: projectId,
+                                projectName: projectName,
                                 documentTitle: docTitle,
                                 items: itemsToSave
                             })
